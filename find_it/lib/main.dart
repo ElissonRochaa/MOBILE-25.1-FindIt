@@ -1,4 +1,5 @@
-import 'package:find_it/pages/editar_perfil.dart';
+//import 'package:find_it/pages/editar_perfil.dart';
+import 'package:find_it/pages/perfil.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -13,7 +14,7 @@ class FindIt extends StatelessWidget {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(title: const Text('Editar perfil')),
-        body: const Center(child: EditarPerfil()),
+        body: const Center(child: Perfil()),
       ),
     );
   }
