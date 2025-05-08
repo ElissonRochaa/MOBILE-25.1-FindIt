@@ -13,7 +13,6 @@ class FindIt extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text('Editar perfil')),
         body: const Center(child: Perfil()),
       ),
     );
