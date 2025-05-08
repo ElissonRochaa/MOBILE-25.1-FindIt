@@ -37,9 +37,7 @@ class _PerfilState extends State<Perfil> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Perfil'),
-      ),
+      appBar: AppBar(title: const Text('Perfil')),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -90,13 +88,13 @@ class _PerfilState extends State<Perfil> {
                   width: 100,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    color: Colors.grey[200],
+                    color: Colors.blue,
                   ),
                   child: TextButton(
                     onPressed: () {},
                     child: const Text(
                       'Perdidos',
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
                 ),
@@ -110,7 +108,7 @@ class _PerfilState extends State<Perfil> {
                     onPressed: () {},
                     child: const Text(
                       'Achados',
-                      style: TextStyle(fontSize: 16),
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   ),
                 ),
@@ -124,13 +122,14 @@ class _PerfilState extends State<Perfil> {
                   onPressed: _navegarParaEdicao,
                   child: const Text(
                     'Editar perfil',
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ),
               ],
             ),
           ),
           Card(
+            margin: const EdgeInsets.only(right: 20, left: 20),
             color: Colors.grey[200],
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,13 +137,21 @@ class _PerfilState extends State<Perfil> {
                 Container(
                   margin: const EdgeInsets.only(right: 10),
                   width: 150,
+                  height: 150,
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                  child: Image.network(
-                    'https://th.bing.com/th/id/OIP.Yb0-EPaB3uddjKkgztDfwQHaHa?rs=1&pid=ImgDetMain',
-                    fit: BoxFit.cover,
+                  child: Container(
+                    margin: const EdgeInsets.all(10),
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Image.network(
+                      'https://th.bing.com/th/id/OIP.Yb0-EPaB3uddjKkgztDfwQHaHa?rs=1&pid=ImgDetMain',
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 Expanded(
