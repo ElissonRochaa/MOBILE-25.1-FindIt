@@ -69,7 +69,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 border: Border(bottom: BorderSide(color: Colors.grey.shade400)),
               ),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start, // Alinhamento corrigido
+                crossAxisAlignment: CrossAxisAlignment.start, // Alinhamento em row
                 children: [
                   const Padding(
                     padding: EdgeInsets.only(top: 16.0), // Ajuste para alinhar com o texto
