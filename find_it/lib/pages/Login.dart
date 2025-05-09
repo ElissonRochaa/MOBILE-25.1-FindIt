@@ -1,3 +1,4 @@
+import 'package:find_it/pages/Cadastro.dart';
 import 'package:flutter/material.dart';
 
 class Login extends StatefulWidget {
@@ -60,20 +61,23 @@ class _LoginState extends State<Login> {
                     ),
                   ),
                 ),
-                TextField(
-                  autofocus: true,
-                  keyboardType: TextInputType.text,
-                  obscureText: true,
-                  style: TextStyle(fontSize: 20),
-                  decoration: InputDecoration(
-                    contentPadding: EdgeInsets.fromLTRB(32, 16, 31, 16),
-                    hintText: "Digite sua senha",
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.only(left: 16, right: 8),
-                      child: Image.asset(
-                        "images/lock.png",
-                        width: 24,
-                        height: 24,
+                Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: TextField(
+                    autofocus: true,
+                    keyboardType: TextInputType.text,
+                    obscureText: true,
+                    style: TextStyle(fontSize: 20),
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.fromLTRB(32, 16, 31, 16),
+                      hintText: "Digite sua senha",
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.only(left: 16, right: 8),
+                        child: Image.asset(
+                          "images/lock.png",
+                          width: 24,
+                          height: 24,
+                        ),
                       ),
                     ),
                   ),
@@ -123,7 +127,14 @@ class _LoginState extends State<Login> {
                 Padding(
                   padding: EdgeInsets.only(top: 10, bottom: 10),
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (builder) => Cadastro()
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xff1D8BC9),
                       padding: EdgeInsets.fromLTRB(32, 16, 32, 16),
