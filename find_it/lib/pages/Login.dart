@@ -1,4 +1,5 @@
 import 'package:find_it/pages/Cadastro.dart';
+import 'package:find_it/pages/Feed.dart';
 import 'package:flutter/material.dart';
 
 class Login extends StatefulWidget {
@@ -96,7 +97,14 @@ class _LoginState extends State<Login> {
                 Padding(
                   padding: EdgeInsets.only(top: 10, bottom: 10),
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (builder) => Feed()
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xff1D8BC9),
                       padding: EdgeInsets.fromLTRB(32, 16, 32, 16),
