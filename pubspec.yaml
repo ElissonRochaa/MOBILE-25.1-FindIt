@@ -1,10 +1,7 @@
 name: find_it
 description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
-# The following defines the version and build number for your application.
 version: 1.0.0+1
 
 environment:
@@ -13,10 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  intl: ^0.17.0
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
@@ -27,5 +20,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  #  - lib/assets/
+  assets:
+    - images/logo.png
+    - images/emailicon.png
+    - images/lock.png
+    - images/add_photo.png
+    - images/book.png
+    - images/min_logo.png
+    - images/phone.png
+    - images/smile.png
