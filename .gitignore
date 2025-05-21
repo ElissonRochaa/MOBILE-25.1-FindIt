@@ -13,8 +13,6 @@ web/.dart_tool/
 web/build/
 .dart_tool/
 
-
-
 # IDEs
 .idea/
 .vscode/

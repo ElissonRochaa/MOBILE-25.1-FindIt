@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:find_it/pages/Login.dart';
 
-import 'package:flutter/material.dart';
-import 'package:find_it/pages/Login.dart';
-
 void main() {
   final ThemeData baseTheme = ThemeData();
 
