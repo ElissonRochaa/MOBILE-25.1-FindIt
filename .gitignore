@@ -11,9 +11,6 @@ generated_plugin_registrant.dart
 # Web related
 web/.dart_tool/
 web/build/
-.dart_tool/
-
-
 
 # IDEs
 .idea/
