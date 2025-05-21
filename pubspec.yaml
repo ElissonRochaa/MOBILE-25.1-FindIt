@@ -1,6 +1,6 @@
 name: find_it
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: 'none' # Remove this line if você desejar publicar no pub.dev
 
 version: 1.0.0+1
 
@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  intl: ^0.17.0
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
@@ -18,8 +19,11 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
+
+  # Garante que os ícones do Material estejam disponíveis
   uses-material-design: true
 
+  # Seção de assets para o app
   assets:
     - images/logo.png
     - images/emailicon.png
@@ -29,3 +33,11 @@ flutter:
     - images/min_logo.png
     - images/phone.png
     - images/smile.png
+
+  # Para adicionar fontes customizadas, descomente e edite o exemplo abaixo:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
