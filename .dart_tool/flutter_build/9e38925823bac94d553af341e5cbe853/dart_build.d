@@ -1,0 +1,1 @@
+ /home/joaolucas/Documentos/MOBILE-25.1-FindIt/.dart_tool/flutter_build/9e38925823bac94d553af341e5cbe853/dart_build_result.json: 
