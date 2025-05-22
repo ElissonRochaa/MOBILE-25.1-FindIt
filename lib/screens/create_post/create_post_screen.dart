@@ -1,5 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../widgets/custom_bottom_navbar.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:find_it/service/auth_service.dart';
+import 'package:find_it/screens/feed/feed_screen.dart';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
+import 'dart:convert';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({Key? key}) : super(key: key);
@@ -13,195 +21,217 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _descricaoController = TextEditingController();
   final TextEditingController _dataController = TextEditingController();
+  final TextEditingController _localController = TextEditingController();
 
-  int _currentIndex = 1; // Índice para controlar a navbar
+  File? _imageFile;
+  bool _isLoading = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Nova postagem',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          'Nova Postagem',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
+        centerTitle: true,
+        elevation: 0,
         automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Container para adicionar foto
             GestureDetector(
-              onTap: () {},
+              onTap: _adicionarFoto,
               child: Container(
                 width: double.infinity,
-                height: 150,
+                height: 180,
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
                 ),
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_a_photo, size: 50, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text('Adicionar foto', style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
+                child: _imageFile != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          _imageFile!,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_a_photo,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Adicionar foto do item',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
               ),
             ),
-            
-            const SizedBox(height: 20),
-            
-            // Campo Nome do Item
-            _buildInputField(
-              icon: Icons.title,
-              placeholder: 'Nome do item',
+            const SizedBox(height: 24),
+            _buildFormField(
               controller: _nomeController,
+              label: 'Nome do item',
+              icon: Icons.title,
+              isRequired: true,
             ),
-            
             const SizedBox(height: 16),
-            
-            // Campo Descrição (corrigido o alinhamento)
-            Container(
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey.shade400)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start, // Alinhamento em row
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16.0), // Ajuste para alinhar com o texto
-                    child: Icon(Icons.description, color: Colors.grey),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: _descricaoController,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Descrição',
-                        contentPadding: EdgeInsets.only(top: 16, bottom: 16), // Padding ajustado
-                      ),
-                      maxLines: 3,
-                    ),
-                  ),
-                ],
-              ),
+            _buildFormField(
+              controller: _descricaoController,
+              label: 'Descrição detalhada',
+              icon: Icons.description,
+              maxLines: 4,
+              isRequired: true,
             ),
-            
             const SizedBox(height: 16),
-            
-            // Campo Data
-            _buildInputField(
-              icon: Icons.calendar_today,
-              placeholder: 'Data',
-              controller: _dataController,
+            _buildFormField(
+              controller: _localController,
+              label: 'Local onde foi encontrado/perdido',
+              icon: Icons.location_on,
+              isRequired: true,
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
               onTap: () => _selectDate(context),
+              child: AbsorbPointer(
+                child: _buildFormField(
+                  controller: _dataController,
+                  label: 'Data',
+                  icon: Icons.calendar_today,
+                  isRequired: true,
+                ),
+              ),
             ),
-            
             const SizedBox(height: 16),
-            
-            // Dropdown Achado/Perdido
             Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey.shade400)),
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.find_in_page, color: Colors.grey),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedStatus,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Achado ou Perdido',
-                        contentPadding: EdgeInsets.only(bottom: 4), // Ajuste de alinhamento
+              child: DropdownButtonHideUnderline(
+                child: DropdownButtonFormField<String>(
+                  value: _selectedStatus,
+                  decoration: const InputDecoration(border: InputBorder.none),
+                  hint: Row(
+                    children: [
+                      Icon(Icons.find_in_page, color: Colors.grey[600]),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Selecione o status',
+                        style: TextStyle(color: Colors.grey[600]),
                       ),
-                      items: ['Achado', 'Perdido'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        setState(() {
-                          _selectedStatus = newValue;
-                        });
-                      },
-                    ),
+                    ],
                   ),
-                ],
+                  items: ['achado', 'perdido'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedStatus = newValue;
+                    });
+                  },
+                  validator: (value) =>
+                      value == null ? 'Selecione um status' : null,
+                ),
               ),
             ),
-            
-            const SizedBox(height: 30),
-            
-            // Botão Publicar
+            const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: _isLoading ? null : _publicarPostagem,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1D8BC9),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Publicar'),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'PUBLICAR',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
-      
-      // Barra de navegação inferior
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        selectedItemColor: const Color(0xFF1D8BC9),
         onTap: (index) {
           if (index == 0) {
-            Navigator.pushReplacementNamed(context, '/home');
+            Navigator.pushReplacementNamed(context, '/');
           } else if (index == 1) {
+            // Já está na tela de novo post
+          } else if (index == 2) {
             Navigator.pushReplacementNamed(context, '/profile');
           }
         },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Feed'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline), label: 'Novo Post'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Perfil'),
+        ],
       ),
-      
-      // Botão flutuante central (já incluso na navbar)
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
-  Widget _buildInputField({
-    required IconData icon,
-    required String placeholder,
+  Widget _buildFormField({
     required TextEditingController controller,
-    VoidCallback? onTap,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+    bool isRequired = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade400)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey),
-          const SizedBox(width: 16),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: placeholder,
-                contentPadding: const EdgeInsets.only(bottom: 4), // Ajuste de alinhamento
-              ),
-              onTap: onTap,
-            ),
-          ),
-        ],
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: '$label${isRequired ? '*' : ''}',
+        labelStyle: TextStyle(color: Colors.grey[600]),
+        prefixIcon: Icon(icon, color: const Color(0xFF1D8BC9)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF1D8BC9), width: 2),
+        ),
       ),
     );
   }
@@ -215,9 +245,110 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     );
     if (picked != null) {
       setState(() {
-        _dataController.text = "${picked.day}/${picked.month}/${picked.year}";
+        _dataController.text = DateFormat('dd/MM/yyyy').format(picked);
       });
     }
+  }
+
+  Future<void> _adicionarFoto() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _publicarPostagem() async {
+    if (!_validateForm()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final token = await AuthService.getToken();
+      if (token == null) {
+        throw Exception('Usuário não autenticado');
+      }
+
+      var uri = Uri.parse('http://localhost:8080/api/v1/posts');
+
+      var request = http.MultipartRequest('POST', uri);
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      request.fields['nomeItem'] = _nomeController.text;
+      request.fields['descricao'] = _descricaoController.text;
+      request.fields['data'] = _dataController.text;
+      request.fields['situacao'] =
+          _selectedStatus == 'Achado' ? 'achado' : 'perdido';
+      request.fields['local'] = _localController.text;
+
+      if (_imageFile != null) {
+        final mimeType = lookupMimeType(_imageFile!.path) ?? 'application/octet-stream';
+        final mediaType = MediaType.parse(mimeType);
+
+        var multipartFile = await http.MultipartFile.fromPath(
+          'foto',
+          _imageFile!.path,
+          contentType: mediaType,
+        );
+        request.files.add(multipartFile);
+      }
+
+      var response = await request.send();
+
+      if (response.statusCode == 201) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Post criado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const FeedScreen()),
+        );
+      } else {
+        final responseBody = await response.stream.bytesToString();
+        final errorData = json.decode(responseBody);
+        throw Exception(errorData['message'] ?? 'Erro ao criar post');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  bool _validateForm() {
+    if (_nomeController.text.isEmpty ||
+        _descricaoController.text.isEmpty ||
+        _localController.text.isEmpty ||
+        _dataController.text.isEmpty ||
+        _selectedStatus == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preencha todos os campos obrigatórios'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    }
+    return true;
   }
 
   @override
@@ -225,6 +356,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     _nomeController.dispose();
     _descricaoController.dispose();
     _dataController.dispose();
+    _localController.dispose();
     super.dispose();
   }
 }
