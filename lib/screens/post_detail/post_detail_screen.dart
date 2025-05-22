@@ -23,188 +23,249 @@ class PostDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalhes do Post'),
+        title: const Text(
+          'Detalhes do Post',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Imagem do post
-            Container(
-              height: 250,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                image: imageUrl.isNotEmpty
-                    ? DecorationImage(
-                        image: NetworkImage(imageUrl),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: imageUrl.isEmpty
-                  ? const Icon(Icons.photo, size: 60, color: Colors.white)
-                  : null,
-            ),
-            
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Nome do item
-                  Text(
-                    itemName,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1D8BC9),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Seção usuário + descrição
+                  // Imagem principal
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    height: 280,
+                    width: double.infinity,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[300],
+                      image: imageUrl.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(imageUrl),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
-                    child: Row(
+                    child: imageUrl.isEmpty
+                        ? const Center(
+                            child: Icon(
+                              Icons.photo,
+                              size: 80,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+
+                  // Conteúdo do post
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Foto e nome do usuário
-                        Column(
+                        // Título e status
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                itemName,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1D8BC9),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isFound
+                                    ? const Color(0xFF15AF12)
+                                    : const Color(0xFFFF9900),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                isFound ? 'Achado' : 'Perdido',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Informações do usuário
+                        Row(
                           children: [
                             Container(
-                              width: 60,
-                              height: 60,
+                              width: 50,
+                              height: 50,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.grey[400],
                               ),
-                              child: const Icon(Icons.person, size: 30, color: Colors.white),
+                              child: const Icon(
+                                Icons.person,
+                                size: 24,
+                                color: Colors.white,
+                              ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              userName,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  userName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Text(
+                                  date,
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        
-                        const SizedBox(width: 16),
-                        
-                        // Descrição e data
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                description,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                date,
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              // Status (Achado/Perdido)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isFound ? const Color(0xFF15AF12) : const Color(0xFFFF9900),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  isFound ? 'Achado' : 'Perdido',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
+
+                        const SizedBox(height: 24),
+
+                        // Descrição
+                        Text(
+                          description,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.5,
                           ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Seção de comentários
+                        const Text(
+                          'Comentários',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildComment(
+                          userName: 'Maria Silva',
+                          comment: 'Acho que vi esse item na biblioteca ontem!',
+                          time: '2h atrás',
+                        ),
+                        _buildComment(
+                          userName: 'João Santos',
+                          comment: 'Vou verificar no setor de achados e perdidos.',
+                          time: '1h atrás',
+                        ),
+                        _buildComment(
+                          userName: 'Jeová Bezerra',
+                          comment: 'Essa caneta é minha véi, safadeza!',
+                          time: '30min atrás',
                         ),
                       ],
                     ),
                   ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Seção de comentários
-                  const Text(
-                    'Comentários',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Lista de comentários
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 3, // Número de comentários de exemplo
-                    itemBuilder: (context, index) {
-                      return _buildComment(
-                        userName: 'Usuário ${index + 1}',
-                        comment: 'Este é um comentário de exemplo sobre o post.',
-                        time: '${index + 1}h atrás',
-                      );
-                    },
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Campo para novo comentário
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Adicione um comentário...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.send, color: Color(0xFF1D8BC9)),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Campo de comentário
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(
+                  color: Colors.grey[200]!,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Adicione um comentário...',
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF1D8BC9),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: () {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      
-      // Barra de navegação inferior
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: 0, // Índice da home
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacementNamed(context, '/feed');
-          } else if (index == 1) {
-            Navigator.pushReplacementNamed(context, '/create-post');
-          } else if (index == 2) {
-            Navigator.pushReplacementNamed(context, '/profile');
-          }
-        },
-      ),
+     bottomNavigationBar: BottomNavigationBar(
+  currentIndex: 0, // Índice fixo pois esta é uma tela de detalhes
+  selectedItemColor: const Color(0xFF1D8BC9),
+  onTap: (index) {
+    if (index == 0) {
+      Navigator.pushReplacementNamed(context, '/');
+    } else if (index == 1) {
+      Navigator.pushReplacementNamed(context, '/create-post');
+    } else if (index == 2) {
+      Navigator.pushReplacementNamed(context, '/profile');
+    }
+  },
+  items: const [
+    BottomNavigationBarItem(
+      icon: Icon(Icons.home),
+      label: 'Feed',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.add_circle_outline),
+      label: 'Novo Post',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.person_outline),
+      label: 'Perfil',
+    ),
+  ],
+),
     );
   }
 
@@ -214,40 +275,54 @@ class PostDetailScreen extends StatelessWidget {
     required String time,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey[300],
-                ),
-                child: const Icon(Icons.person, size: 20, color: Colors.white),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                userName,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              Text(
-                time,
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
-              ),
-            ],
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey[300],
+            ),
+            child: const Icon(
+              Icons.person,
+              size: 20,
+              color: Colors.white,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(comment),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      time,
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  comment,
+                  style: const TextStyle(height: 1.4),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
