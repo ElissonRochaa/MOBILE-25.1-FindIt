@@ -198,7 +198,7 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final post = _posts[index];
-          final isFound = post['situacao'] == 'ACHADO';
+          final isFound = post['situacao'] == 'achado';
           final imageUrl = post['fotoUrl'] != null ? 'http://localhost:8080${post['fotoUrl']}' : '';
 
           return GestureDetector(

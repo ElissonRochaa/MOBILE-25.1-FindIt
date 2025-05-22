@@ -282,8 +282,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       request.fields['nomeItem'] = _nomeController.text;
       request.fields['descricao'] = _descricaoController.text;
       request.fields['data'] = _dataController.text;
-      request.fields['situacao'] =
-          _selectedStatus == 'Achado' ? 'achado' : 'perdido';
+      request.fields['situacao'] = _selectedStatus!;  // Corrigido aqui
       request.fields['local'] = _localController.text;
 
       if (_imageFile != null) {
