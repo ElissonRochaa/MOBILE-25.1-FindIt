@@ -41,11 +41,12 @@ class _LoginState extends State<Login> {
 
       final responseData = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
-        await AuthService.saveUserData(
-          responseData['token'], 
-          _emailController.text
-        );
+     if (response.statusCode == 200) {
+       await AuthService.saveUserData(
+       responseData['token'], 
+    _emailController.text,
+    responseData['user']['id'].toString(), // Adicionado
+  );
 
         Navigator.pushReplacement(
           context,
