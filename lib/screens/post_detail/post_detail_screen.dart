@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:find_it/service/auth_service.dart';
+import 'package:find_it/screens/user_profile/user_profile_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
-  // Recebe o objeto completo do post da tela anterior.
   final Map<String, dynamic> post;
 
   const PostDetailScreen({
@@ -31,13 +31,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    // Pega o ID do usuário logado para verificações de permissão (deletar comentário)
     _currentUserId = await AuthService.getUserId();
-    // Busca os comentários do post assim que a tela é carregada
     _fetchComments();
   }
 
-  // [READ] Busca os comentários da API
   Future<void> _fetchComments() async {
     setState(() => _isLoadingComments = true);
     try {
@@ -46,24 +43,40 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       );
       if (response.statusCode == 200) {
         final String responseBody = utf8.decode(response.bodyBytes);
-        setState(() {
-          _comments = jsonDecode(responseBody);
-        });
+        if (mounted) {
+          setState(() {
+            _comments = jsonDecode(responseBody);
+          });
+        }
+      } else {
+         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorData['message'] ?? 'Erro ao buscar comentários.'), backgroundColor: Colors.red),
+        );
       }
     } catch (e) {
-      // Tratar erro
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro de conexão ao buscar comentários.'), backgroundColor: Colors.red),
+      );
     } finally {
-      setState(() => _isLoadingComments = false);
+      if (mounted) {
+        setState(() => _isLoadingComments = false);
+      }
     }
   }
 
-  // [CREATE] Adiciona um novo comentário
   Future<void> _addComment() async {
     if (_commentController.text.isEmpty || _isPostingComment) return;
-
     setState(() => _isPostingComment = true);
-
     final token = await AuthService.getToken();
+    if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você precisa estar logado para comentar.'), backgroundColor: Colors.red),
+        );
+        setState(() => _isPostingComment = false);
+        return;
+    }
+
     try {
       final response = await http.post(
         Uri.parse('http://localhost:8080/api/v1/posts/${widget.post['_id']}/comments'),
@@ -76,20 +89,32 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
       if (response.statusCode == 201) {
         _commentController.clear();
-        _fetchComments(); // Atualiza a lista de comentários
+        _fetchComments(); 
       } else {
-        // Tratar erro de postagem
+        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorData['message'] ?? 'Erro ao adicionar comentário.'), backgroundColor: Colors.red),
+        );
       }
     } catch (e) {
-      // Tratar erro de conexão
+       ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro de conexão ao adicionar comentário.'), backgroundColor: Colors.red),
+        );
     } finally {
-      setState(() => _isPostingComment = false);
+      if (mounted) {
+        setState(() => _isPostingComment = false);
+      }
     }
   }
 
-  // [DELETE] Deleta um comentário
   Future<void> _deleteComment(String commentId) async {
     final token = await AuthService.getToken();
+     if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você precisa estar logado para deletar.'), backgroundColor: Colors.red),
+        );
+        return;
+    }
     try {
       final response = await http.delete(
         Uri.parse('http://localhost:8080/api/v1/posts/${widget.post['_id']}/comments/$commentId'),
@@ -97,12 +122,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       );
 
       if (response.statusCode == 200) {
-        _fetchComments(); // Atualiza a lista de comentários
+        _fetchComments(); 
       } else {
-        // Tratar erro de deleção
+        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorData['message'] ?? 'Erro ao deletar comentário.'), backgroundColor: Colors.red),
+        );
       }
     } catch (e) {
-      // Tratar erro de conexão
+       ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro de conexão ao deletar comentário.'), backgroundColor: Colors.red),
+        );
     }
   }
   
@@ -114,13 +144,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
-    // Extrai os dados do post recebido pelo construtor
     final String itemName = widget.post['nomeItem'] ?? 'Item';
     final String description = widget.post['descricao'] ?? 'Sem descrição';
     final String userName = widget.post['autor']?['nome'] ?? 'Usuário';
     final String userProfilePic = widget.post['autor']?['profilePicture'] ?? '';
+    final String authorId = widget.post['autor']?['_id']?.toString() ?? '';
     final String date = _formatDate(widget.post['dataOcorrencia'] ?? '');
     final bool isFound = widget.post['situacao'] == 'achado';
     final String imageUrl = widget.post['fotoUrl'] ?? '';
@@ -138,7 +168,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Imagem principal com AspectRatio
+                  // CÓDIGO DA IMAGEM AQUI
                   AspectRatio(
                     aspectRatio: 4 / 3,
                     child: Container(
@@ -154,15 +184,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           : null,
                     ),
                   ),
-
-                  // Conteúdo do post
                   Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // CÓDIGO DO TÍTULO E STATUS AQUI
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: Text(itemName,
@@ -171,6 +201,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF1D8BC9))),
                             ),
+                            const SizedBox(width: 12),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
@@ -185,31 +216,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 25,
-                              backgroundColor: Colors.grey[400],
-                              backgroundImage: userProfilePic.isNotEmpty ? NetworkImage(userProfilePic) : null,
-                              child: userProfilePic.isEmpty ? const Icon(Icons.person, size: 24, color: Colors.white) : null,
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                Text(date, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                              ],
-                            ),
-                          ],
+                        GestureDetector(
+                          onTap: () {
+                            if (authorId.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserProfileScreen(userId: authorId),
+                                ),
+                              );
+                            }
+                          },
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 25,
+                                backgroundColor: Colors.grey[400],
+                                backgroundImage: userProfilePic.isNotEmpty ? NetworkImage(userProfilePic) : null,
+                                child: userProfilePic.isEmpty ? const Icon(Icons.person, size: 24, color: Colors.white) : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text(date, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 24),
                         Text(description, style: const TextStyle(fontSize: 16, height: 1.5)),
                         const SizedBox(height: 32),
                         const Text('Comentários', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
-                        
-                        // Seção de comentários dinâmica
                         _buildCommentsSection(),
                       ],
                     ),
@@ -218,13 +259,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           ),
-          _buildCommentInputField(), // Campo de comentário
+          _buildCommentInputField(),
         ],
       ),
     );
   }
 
-  // Widget que constrói a lista de comentários
   Widget _buildCommentsSection() {
     if (_isLoadingComments) {
       return const Center(child: CircularProgressIndicator());
@@ -243,7 +283,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  // Widget para um único comentário
   Widget _buildComment({required Map<String, dynamic> comment}) {
     final author = comment['autor'];
     final commentAuthorId = author?['_id']?.toString();
@@ -286,7 +325,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  // Widget para o campo de input de comentário
   Widget _buildCommentInputField() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -302,6 +340,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(24)),
               child: TextField(
                 controller: _commentController,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(hintText: 'Adicione um comentário...', border: InputBorder.none),
               ),
             ),
