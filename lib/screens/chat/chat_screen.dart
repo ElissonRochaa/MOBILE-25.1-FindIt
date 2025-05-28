@@ -6,10 +6,10 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String? recipientId; // AGORA OPCIONAL
-  final String recipientName; // Ainda necessário para o AppBar
-  final String? recipientProfilePic; // Ainda necessário para o AppBar
-  final String? conversationId; // NOVO: Para abrir conversas existentes
+  final String? recipientId; 
+  final String recipientName; 
+  final String? recipientProfilePic; 
+  final String? conversationId; 
 
   const ChatScreen({
     Key? key,
@@ -18,7 +18,7 @@ class ChatScreen extends StatefulWidget {
     this.recipientProfilePic,
     this.conversationId,
   })  : assert(recipientId != null || conversationId != null,
-            'Deve ser fornecido recipientId ou conversationId'), // Garante que um dos dois exista
+            'Deve ser fornecido recipientId ou conversationId'),
         super(key: key);
 
   @override
@@ -32,7 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   List<dynamic> _messages = [];
   bool _isLoadingConversation = true;
   bool _isSendingMessage = false;
-  String? _internalConversationId; // Variável interna para o ID da conversa
+  String? _internalConversationId; 
   String? _currentUserId;
 
   IO.Socket? _socket;
@@ -40,7 +40,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Define _internalConversationId a partir do widget se já existir
+ 
     _internalConversationId = widget.conversationId;
     _loadInitialData();
   }
@@ -57,19 +57,17 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    // Se já temos um ID da conversa (vindo da lista de conversas),
-    // apenas buscamos as mensagens e conectamos ao socket.
+ 
     if (_internalConversationId != null) {
       setState(() => _isLoadingConversation = true);
       await _fetchMessages();
       _connectToSocket(); 
       if (mounted) setState(() => _isLoadingConversation = false);
     } 
-    // Senão (vindo do perfil de um usuário), iniciamos ou obtemos a conversa.
+ 
     else if (widget.recipientId != null) {
       await _initiateOrGetConversation();
     } 
-    // Caso de erro: nem recipientId nem conversationId foram fornecidos (o assert do construtor deve pegar isso)
     else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,7 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _connectToSocket() async { // Tornando async para usar await no getToken
+  void _connectToSocket() async { 
     if (_internalConversationId == null || _socket != null) return;
 
     final token = await AuthService.getToken();
@@ -94,13 +92,13 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       _socket = IO.io('http://localhost:8080', <String, dynamic>{
         'transports': ['websocket'],
-        'autoConnect': false, // Conectaremos manualmente após configurar o 'auth'
-        'auth': { // Envia o token para o middleware de autenticação do socket no backend
+        'autoConnect': false, 
+        'auth': {
           'token': token
         }
       });
 
-      _socket!.connect(); // Conecta manualmente
+      _socket!.connect(); 
 
       _socket!.onConnect((_) {
         print('ChatScreen: Conectado ao Socket.IO Server');
@@ -121,7 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
       
-      _socket!.on('auth_error', (data) { // Listener para erros de autenticação na sala
+      _socket!.on('auth_error', (data) { 
           print('ChatScreen: Erro de autenticação na sala do Socket: $data');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -139,7 +137,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initiateOrGetConversation() async {
-    // Esta função só é chamada se widget.recipientId não for nulo e _internalConversationId for nulo.
+
     setState(() => _isLoadingConversation = true);
     final token = await AuthService.getToken();
     if (token == null || widget.recipientId == null) {
@@ -192,7 +190,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final token = await AuthService.getToken();
     if (token == null) return;
 
-    // Não precisa de setState(_isLoadingConversation = true) aqui pois já é chamado antes
     try {
       final response = await http.get(
         Uri.parse('http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
@@ -247,7 +244,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       if (response.statusCode == 201) {
         _messageController.clear();
-        // A mensagem será adicionada via Socket.IO, não precisa de _fetchMessages()
+    
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         print('Erro ao enviar mensagem: ${errorData['message']}');
@@ -345,10 +342,10 @@ class _ChatScreenState extends State<ChatScreen> {
         ? const BorderRadius.only(
             topLeft: Radius.circular(16),
             bottomLeft: Radius.circular(16),
-            topRight: Radius.circular(16), // Corrigido para canto superior direito
+            topRight: Radius.circular(16), 
           )
         : const BorderRadius.only(
-            topLeft: Radius.circular(16), // Corrigido para canto superior esquerdo
+            topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
             bottomRight: Radius.circular(16),
           );
