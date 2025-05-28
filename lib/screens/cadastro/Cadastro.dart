@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../login/Login.dart';
 
 class Cadastro extends StatefulWidget {
@@ -15,12 +18,22 @@ class _CadastroState extends State<Cadastro> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
-  // Controladores para os campos do formulário
+  File? _imageFile;
+
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
   final TextEditingController _cursoController = TextEditingController();
+
+  Future<void> _pickImage() async {
+    final pickedImage = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedImage != null) {
+      setState(() {
+        _imageFile = File(pickedImage.path);
+      });
+    }
+  }
 
   void _onItemTapped(int index) {
     if (index == 0) {
@@ -40,36 +53,44 @@ class _CadastroState extends State<Cadastro> {
       _isLoading = true;
     });
 
-    try {
-      final response = await http.post(
-        Uri.parse('http://localhost:8080/api/v1/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "nome": _nomeController.text,
-          "email": _emailController.text,
-          "senha": _senhaController.text,
-          "telefone": _telefoneController.text,
-          "curso": _cursoController.text,
-        }),
+    final url = Uri.parse('http://localhost:8080/api/v1/users');
+    final request = http.MultipartRequest('POST', url);
+
+    request.fields['nome'] = _nomeController.text;
+    request.fields['email'] = _emailController.text;
+    request.fields['senha'] = _senhaController.text;
+    request.fields['telefone'] = _telefoneController.text;
+    request.fields['curso'] = _cursoController.text;
+
+    if (_imageFile != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'profilePicture',
+          _imageFile!.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
       );
+    }
+    
+    try {
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 201) {
-        // Mostrar mensagem de sucesso
         _showSuccessDialog();
       } else {
-        // Mostrar mensagem de erro
         final errorMessage = jsonDecode(response.body)['message'] ?? 'Erro ao cadastrar';
         _showErrorDialog(errorMessage);
       }
     } catch (e) {
-      _showErrorDialog('Erro de conexão: $e');
+      _showErrorDialog('Erro de conexão. Verifique se o backend está rodando.');
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
   }
-
+  
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -90,7 +111,6 @@ class _CadastroState extends State<Cadastro> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Redirecionar para a tela de login
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const Login()),
@@ -176,12 +196,32 @@ class _CadastroState extends State<Cadastro> {
                       ],
                     ),
                   ),
+                  // WIDGET DA FOTO CORRIGIDO
                   Padding(
                     padding: EdgeInsets.only(top: 5, bottom: 30),
-                    child: Image.asset(
-                      "images/add_photo.png",
-                      width: 135,
-                      height: 135,
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        width: 130,
+                        height: 130,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          shape: BoxShape.circle,
+                          image: _imageFile != null
+                              ? DecorationImage(
+                                  fit: BoxFit.contain, // Garante que a imagem inteira caiba
+                                  image: FileImage(_imageFile!),
+                                )
+                              : null,
+                        ),
+                        child: _imageFile == null
+                            ? Image.asset(
+                                "images/add_photo.png",
+                                width: 135,
+                                height: 135,
+                              )
+                            : null,
+                      ),
                     ),
                   ),
                   Padding(
