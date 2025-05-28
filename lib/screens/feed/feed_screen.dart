@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:find_it/service/auth_service.dart';
-import 'package:find_it/widgets/custom_bottom_navbar.dart';
 import 'package:find_it/screens/post_detail/post_detail_screen.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -13,10 +11,11 @@ class FeedScreen extends StatefulWidget {
   State<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateMixin {
+class _FeedScreenState extends State<FeedScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  int _currentIndex = 0;
+  int _currentIndex = 0; // Mantém o estado do ícone ativo
   List<dynamic> _posts = [];
   bool _isLoading = true;
   String _errorMessage = '';
@@ -35,18 +34,14 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
     });
 
     try {
-      final token = await AuthService.getToken();
       final response = await http.get(
         Uri.parse('http://localhost:8080/api/v1/posts'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
       );
 
       if (response.statusCode == 200) {
+        final String responseBody = utf8.decode(response.bodyBytes);
         setState(() {
-          _posts = jsonDecode(response.body);
+          _posts = jsonDecode(responseBody);
           _isLoading = false;
         });
       } else {
@@ -122,9 +117,6 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
                   hintText: 'Pesquisar',
                   contentPadding: EdgeInsets.symmetric(vertical: 12),
                 ),
-                onChanged: (value) {
-                  // Opcional: implementar filtro local aqui
-                },
               ),
             ),
           ),
@@ -141,34 +133,41 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
           ),
         ],
       ),
-   bottomNavigationBar: BottomNavigationBar(
-  currentIndex: _currentIndex,
-  selectedItemColor: const Color(0xFF1D8BC9),
-  onTap: (index) {
-    setState(() => _currentIndex = index);
-    if (index == 0) {
-      Navigator.pushReplacementNamed(context, '/');
-    } else if (index == 1) {
-      Navigator.pushReplacementNamed(context, '/create-post');
-    } else if (index == 2) {
-      Navigator.pushReplacementNamed(context, '/profile');
-    }
-  },
-  items: const [
-    BottomNavigationBarItem(
-      icon: Icon(Icons.home),
-      label: 'Feed',
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.add_circle_outline),
-      label: 'Novo Post',
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.person_outline),
-      label: 'Perfil',
-    ),
-  ],
-),
+      // BARRA DE NAVEGAÇÃO CORRIGIDA
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        selectedItemColor: const Color(0xFF1D8BC9),
+        onTap: (index) {
+          // Atualiza o estado visual do ícone selecionado
+          setState(() => _currentIndex = index);
+
+          // Executa a navegação com base no índice do ícone clicado
+          if (index == 0) {
+            // Já estamos no feed, então podemos apenas atualizar a lista
+            _fetchPosts();
+          } else if (index == 1) {
+            // Navega para a tela de criar post
+            Navigator.pushNamed(context, '/create-post');
+          } else if (index == 2) {
+            // Navega para a tela de perfil
+            Navigator.pushNamed(context, '/profile');
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Feed',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            label: 'Novo Post',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Perfil',
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _fetchPosts,
         backgroundColor: const Color(0xFF1D8BC9),
@@ -177,15 +176,13 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
     );
   }
 
- Widget _buildFeedContent() {
+  Widget _buildFeedContent() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
     if (_errorMessage.isNotEmpty) {
       return Center(child: Text(_errorMessage));
     }
-
     if (_posts.isEmpty) {
       return const Center(child: Text('Nenhum post encontrado'));
     }
@@ -198,35 +195,30 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final post = _posts[index];
-          final isFound = post['situacao'] == 'achado';
-          final imageUrl = post['fotoUrl'] != null ? 'http://localhost:8080${post['fotoUrl']}' : '';
-
           return GestureDetector(
             onTap: () {
-              Navigator.pushNamed(
+              Navigator.push(
                 context,
-                '/post-detail',
-                arguments: {
-                  'itemName': post['nomeItem'] ?? '',
-                  'description': post['descricao'] ?? '',
-                  'userName': post['usuario']?['nome'] ?? 'Usuário',
-                  'date': _formatDate(post['data'] ?? ''),
-                  'isFound': isFound,
-                  'imageUrl': imageUrl,
-                },
+                MaterialPageRoute(
+                  builder: (context) => PostDetailScreen(post: post),
+                ),
               );
             },
-            child: _buildPostCard(
-              isFound: isFound,
-              post: post,
-            ),
+            child: _buildPostCard(post: post),
           );
         },
       ),
     );
   }
 
-  Widget _buildPostCard({required bool isFound, required dynamic post}) {
+  Widget _buildPostCard({required dynamic post}) {
+    final bool isFound = post['situacao'] == 'achado';
+    final String imageUrl = post['fotoUrl'] ?? '';
+    final String itemName = post['nomeItem'] ?? 'Item não identificado';
+    final String description = post['descricao'] ?? 'Sem descrição';
+    final String authorName = post['autor']?['nome'] ?? 'Usuário anônimo';
+    final String postDate = _formatDate(post['dataOcorrencia'] ?? '');
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -243,37 +235,35 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Imagem em destaque
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Container(
-              height: 180,
-              color: Colors.grey[300],
-              child: post['fotoUrl'] != null
-                  ? Image.network(
-                      'http://localhost:8080${post['fotoUrl']}',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => 
-                          const Center(child: Icon(Icons.photo, size: 50, color: Colors.white)),
-                    )
-                  : const Center(child: Icon(Icons.photo, size: 50, color: Colors.white)),
+            child: AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Container(
+                color: Colors.grey[300],
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.white)),
+                      )
+                    : const Center(child: Icon(Icons.photo, size: 50, color: Colors.white)),
+              ),
             ),
           ),
-
-          // Conteúdo do post
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Cabeçalho (título + status)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Text(
-                        post['nomeItem'],
+                        itemName,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -301,40 +291,24 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 8),
-
-                // Descrição
                 Text(
-                  post['descricao'],
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    height: 1.4,
-                  ),
+                  description,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-
                 const SizedBox(height: 16),
-
-                // Rodapé (autor + data)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Por: ${post['usuario']?['nome'] ?? 'Usuário'}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      'Por: $authorName',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                     Text(
-                      _formatDate(post['data']),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      postDate,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
                 ),
