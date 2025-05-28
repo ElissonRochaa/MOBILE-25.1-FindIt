@@ -1,12 +1,12 @@
+// CÓDIGO CORRIGIDO
 import 'package:flutter/material.dart';
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/screens/feed/feed_screen.dart';
 import 'package:find_it/screens/create_post/create_post_screen.dart';
-import 'package:find_it/screens/post_detail/post_detail_screen.dart';
 import 'package:find_it/screens/cadastro/Cadastro.dart';
 import 'package:find_it/screens/login/Login.dart';
 import 'package:find_it/screens/perfil/perfil.dart';
-import 'package:find_it/screens/editarPerfil/editar_perfil.dart'; // Novo import
+import 'package:find_it/screens/editarPerfil/editar_perfil.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,21 +32,12 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const FeedScreen(),
         '/create-post': (context) => const CreatePostScreen(),
-        '/post-detail': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return PostDetailScreen(
-            itemName: args['itemName'],
-            description: args['description'],
-            userName: args['userName'],
-            date: args['date'],
-            isFound: args['isFound'],
-            imageUrl: args['imageUrl'] ?? '',
-          );
-        },
+        // A rota '/post-detail' foi removida daqui. A navegação agora é feita
+        // diretamente pelo FeedScreen, o que é mais moderno e flexível.
         '/cadastro': (context) => const Cadastro(),
         '/login': (context) => const Login(),
         '/profile': (context) => const Perfil(),
-        '/editar-perfil': (context) => const EditarPerfil(), // Nova rota adicionada
+        '/editar-perfil': (context) => const EditarPerfil(),
       },
     );
   }
