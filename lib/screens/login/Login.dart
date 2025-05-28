@@ -20,6 +20,7 @@ class _LoginState extends State<Login> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
 
+  // Função de login com a lógica de integração CORRIGIDA
   Future<void> _loginUsuario() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -30,8 +31,9 @@ class _LoginState extends State<Login> {
     });
 
     try {
+      // URL CORRIGIDA: A rota de login é '/signin'
       final response = await http.post(
-        Uri.parse('http://localhost:8080/api/v1/auth/login'),
+        Uri.parse('http://localhost:8080/api/v1/auth/signin'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "email": _emailController.text,
@@ -42,22 +44,29 @@ class _LoginState extends State<Login> {
       final responseData = jsonDecode(response.body);
 
      if (response.statusCode == 200) {
-       await AuthService.saveUserData(
-       responseData['token'], 
-    _emailController.text,
-    responseData['user']['id'].toString(), // Adicionado
-  );
+       // DADO CORRIGIDO: O ID do usuário vem no campo '_id' do objeto 'user'
+       final userId = responseData['user']['_id'].toString();
+       final token = responseData['token'];
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => FeedScreen()),
-        );
+       // Salva os dados do usuário usando seu AuthService
+       await AuthService.saveUserData(
+         token, 
+         _emailController.text, // Salva o email
+         userId,                // Salva o ID do usuário
+       );
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => FeedScreen()),
+          );
+        }
       } else {
         final errorMessage = responseData['message'] ?? 'Erro ao fazer login';
         _showErrorDialog(errorMessage);
       }
     } catch (e) {
-      _showErrorDialog('Erro de conexão: $e');
+      _showErrorDialog('Erro de conexão. Verifique se o backend está rodando.');
     } finally {
       if (mounted) {
         setState(() {
@@ -67,6 +76,7 @@ class _LoginState extends State<Login> {
     }
   }
 
+  // Nenhuma alteração no restante do arquivo
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
