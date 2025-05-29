@@ -1,43 +1,77 @@
-// CÓDIGO CORRIGIDO
 import 'package:flutter/material.dart';
-import 'package:find_it/service/auth_service.dart';
+import 'package:find_it/screens/splash/splash_screen.dart';
 import 'package:find_it/screens/feed/feed_screen.dart';
 import 'package:find_it/screens/create_post/create_post_screen.dart';
 import 'package:find_it/screens/cadastro/Cadastro.dart';
 import 'package:find_it/screens/login/Login.dart';
 import 'package:find_it/screens/perfil/perfil.dart';
 import 'package:find_it/screens/editarPerfil/editar_perfil.dart';
+import 'package:find_it/screens/conversations/conversation_list_screen.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final isLoggedIn = await AuthService.isLoggedIn();
-  runApp(MyApp(isLoggedIn: isLoggedIn));
+
+  await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(420, 825), 
+    center: true, 
+    backgroundColor: Colors.transparent, 
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal, 
+    title: 'FindIt - Achados e Perdidos', 
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final bool isLoggedIn;
-
-  const MyApp({super.key, required this.isLoggedIn});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Achados e Perdidos',
+      title: 'FindIt - Achados e Perdidos', 
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1D8BC9),
+          primary: const Color(0xFF1D8BC9),
+        ),
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 1,
+          iconTheme: IconThemeData(color: Colors.black),
+          titleTextStyle: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1D8BC9),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         ),
       ),
-      initialRoute: isLoggedIn ? '/' : '/login',
+      home: const SplashScreen(),
       routes: {
-        '/': (context) => const FeedScreen(),
-        '/create-post': (context) => const CreatePostScreen(),
-        // A rota '/post-detail' foi removida daqui. A navegação agora é feita
-        // diretamente pelo FeedScreen, o que é mais moderno e flexível.
-        '/cadastro': (context) => const Cadastro(),
+        '/feed': (context) => const FeedScreen(),
         '/login': (context) => const Login(),
+        '/cadastro': (context) => const Cadastro(),
+        '/create-post': (context) => const CreatePostScreen(),
         '/profile': (context) => const Perfil(),
         '/editar-perfil': (context) => const EditarPerfil(),
+        '/conversations': (context) => const ConversationListScreen(),
       },
     );
   }
