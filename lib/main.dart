@@ -1,20 +1,68 @@
-//import 'package:find_it/pages/editar_perfil.dart';
-import 'package:find_it/pages/perfil.dart';
+// lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:find_it/screens/splash/splash_screen.dart';
+import 'package:find_it/screens/feed/feed_screen.dart';
+import 'package:find_it/screens/create_post/create_post_screen.dart';
+import 'package:find_it/screens/cadastro/Cadastro.dart';
+import 'package:find_it/screens/login/Login.dart';
+import 'package:find_it/screens/perfil/perfil.dart';
+import 'package:find_it/screens/editarPerfil/editar_perfil.dart';
+import 'package:find_it/screens/conversations/conversation_list_screen.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:provider/provider.dart'; 
+import 'package:find_it/service/theme_service.dart'; 
 
-void main() {
-  runApp(const FindIt());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(420, 825),
+    center: true,
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal,
+    title: 'FindIt - Achados e Perdidos',
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeNotifier(), 
+      child: const MyApp(),
+    ),
+  );
 }
 
-class FindIt extends StatelessWidget {
-  const FindIt({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
+
     return MaterialApp(
-      home: Scaffold(
-        body: const Center(child: Perfil()),
-      ),
+      title: 'FindIt - Achados e Perdidos',
+      debugShowCheckedModeBanner: false,
+      theme: themeNotifier.lightTheme, 
+      darkTheme: themeNotifier.darkTheme, 
+      themeMode: themeNotifier.currentThemeMode, 
+      
+      home: const SplashScreen(),
+      routes: {
+        '/feed': (context) => const FeedScreen(),
+        '/login': (context) => const Login(),
+        '/cadastro': (context) => const Cadastro(),
+        '/create-post': (context) => const CreatePostScreen(),
+        '/profile': (context) => const Perfil(),
+        '/editar-perfil': (context) => const EditarPerfil(),
+        '/conversations': (context) => const ConversationListScreen(),
+    
+      },
     );
   }
 }
