@@ -20,7 +20,6 @@ class _LoginState extends State<Login> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
 
-  // Função de login com a lógica de integração CORRIGIDA
   Future<void> _loginUsuario() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -31,7 +30,6 @@ class _LoginState extends State<Login> {
     });
 
     try {
-      // URL CORRIGIDA: A rota de login é '/signin'
       final response = await http.post(
         Uri.parse('http://localhost:8080/api/v1/auth/signin'),
         headers: {'Content-Type': 'application/json'},
@@ -44,15 +42,13 @@ class _LoginState extends State<Login> {
       final responseData = jsonDecode(response.body);
 
      if (response.statusCode == 200) {
-       // DADO CORRIGIDO: O ID do usuário vem no campo '_id' do objeto 'user'
        final userId = responseData['user']['_id'].toString();
        final token = responseData['token'];
 
-       // Salva os dados do usuário usando seu AuthService
        await AuthService.saveUserData(
          token, 
-         _emailController.text, // Salva o email
-         userId,                // Salva o ID do usuário
+         _emailController.text,
+         userId,               
        );
 
         if (mounted) {
@@ -76,7 +72,6 @@ class _LoginState extends State<Login> {
     }
   }
 
-  // Nenhuma alteração no restante do arquivo
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
