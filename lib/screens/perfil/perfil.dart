@@ -5,6 +5,8 @@ import 'package:find_it/screens/login/Login.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+// NOVO IMPORT: Importa o seu widget customizado
+import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
 
 class Perfil extends StatefulWidget {
   const Perfil({super.key});
@@ -22,7 +24,11 @@ class _PerfilState extends State<Perfil> {
   String _selectedTab = 'perdido';
   bool _isLoading = true;
   String? _errorMessage;
-  String? _currentUserId; // Para verificar a autoria dos posts
+  String? _currentUserId; 
+
+  // O índice desta tela na BottomNavBar é sempre 2 (Perfil)
+  final int _bottomNavCurrentIndex = 2;
+
 
   @override
   void initState() {
@@ -31,21 +37,20 @@ class _PerfilState extends State<Perfil> {
   }
 
   Future<void> _carregarDadosDaPagina() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Pega o ID do usuário logado primeiro
       _currentUserId = await AuthService.getUserId();
       if (_currentUserId == null) throw Exception('Usuário não autenticado para buscar ID.');
       
       final userData = await _fetchUserData();
-      // Usa o _currentUserId que já pegamos, pois userData['_id'] pode ser o do perfil visitado (se fosse o caso)
-      // Mas como estamos na tela de perfil do próprio usuário, userData['_id'] é igual a _currentUserId.
       await _fetchUserPosts(_currentUserId!); 
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
@@ -162,7 +167,6 @@ class _PerfilState extends State<Perfil> {
     }
   }
 
-  // NOVO: Função para deletar um post
   Future<void> _deleteUserPost(String postId) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -175,33 +179,31 @@ class _PerfilState extends State<Perfil> {
         ],
       ),
     );
-
-    if (confirmar != true) return;
-
+    if (confirmar != true || !mounted) return;
     final token = await AuthService.getToken();
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro: Usuário não autenticado.')));
       return;
     }
-
     try {
       final response = await http.delete(
         Uri.parse('http://localhost:8080/api/v1/posts/$postId'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Post excluído com sucesso!'), backgroundColor: Colors.green));
-        _carregarDadosDaPagina(); // Recarrega os posts
+        _carregarDadosDaPagina();
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         throw Exception(errorData['message'] ?? 'Erro ao excluir post');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red));
     }
   }
 
-  // NOVO: Função para marcar um post como resolvido
   Future<void> _resolveUserPost(String postId) async {
      final confirmar = await showDialog<bool>(
       context: context,
@@ -214,9 +216,7 @@ class _PerfilState extends State<Perfil> {
         ],
       ),
     );
-
-    if (confirmar != true) return;
-
+    if (confirmar != true || !mounted) return;
     final token = await AuthService.getToken();
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro: Usuário não autenticado.')));
@@ -227,22 +227,43 @@ class _PerfilState extends State<Perfil> {
         Uri.parse('http://localhost:8080/api/v1/posts/$postId/resolve'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Post marcado como resolvido!'), backgroundColor: Colors.green));
-        _carregarDadosDaPagina(); // Recarrega os posts
+        _carregarDadosDaPagina();
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         throw Exception(errorData['message'] ?? 'Erro ao resolver post');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red));
     }
   }
 
+  // NOVA FUNÇÃO: Lógica de navegação para a BottomNavBar
+  void _onBottomNavTapped(int index) {
+    // A tela de Perfil não precisa atualizar seu próprio _bottomNavCurrentIndex
+    // pois ele é fixo (2) quando esta tela está ativa.
+    // A navegação é feita para as OUTRAS telas.
+
+    final currentRouteName = ModalRoute.of(context)?.settings.name;
+
+    if (index == 0) { // Feed
+      if (currentRouteName != '/') {
+        Navigator.pushReplacementNamed(context, '/');
+      }
+    } else if (index == 1) { // Novo Post
+      // Para "Novo Post", geralmente usamos pushNamed para poder voltar.
+      Navigator.pushNamed(context, '/create-post');
+    }
+    // Se index == 2 (Perfil), não fazemos nada pois já estamos aqui.
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final displayedPosts = _userPosts.where((post) {
-      // Se o post estiver resolvido, ele não deve aparecer em 'perdido' ou 'achado'
       if (post['situacao'] == 'resolvido') return false;
       return post['situacao'] == _selectedTab;
     }).toList();
@@ -320,18 +341,10 @@ class _PerfilState extends State<Perfil> {
                     ),
                   ],
                 ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        selectedItemColor: const Color(0xFF1D8BC9),
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/');
-          else if (index == 1) Navigator.pushNamed(context, '/create-post');
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Feed'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Novo Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
-        ],
+      // ATUALIZADO: Usando o CustomBottomNavBar
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _bottomNavCurrentIndex, // Passa o índice correto desta tela
+        onTap: _onBottomNavTapped,       // Passa a função de callback para navegação
       ),
     );
   }
@@ -353,15 +366,21 @@ class _PerfilState extends State<Perfil> {
     );
   }
 
-  // ALTERADO: _buildPostCard agora inclui um PopupMenuButton para ações
   Widget _buildPostCard({required Map<String, dynamic> post}) {
     final itemName = post['nomeItem'] ?? '';
     final description = post['descricao'] ?? '';
     final date = _formatDate(post['dataOcorrencia'] ?? '');
     final imageUrl = post['fotoUrl'] ?? '';
     final isFound = post['situacao'] == 'achado';
-    final isResolved = post['situacao'] == 'resolvido'; // Verifica se o post já está resolvido
+    final isResolved = post['situacao'] == 'resolvido';
     final String postId = post['_id'] ?? '';
+    final String postAuthorId = post['autor']?['_id']?.toString() ?? '';
+
+
+    // Verifica se o post pertence ao usuário logado
+    // _currentUserId já deve estar populado em initState
+    final bool isCurrentUserPost = (_currentUserId != null && postAuthorId == _currentUserId);
+
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -387,48 +406,42 @@ class _PerfilState extends State<Perfil> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start, // Alinha os itens ao topo
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: Text(itemName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1D8BC9)))),
-                    // NOVO: PopupMenuButton para ações
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, color: Colors.grey),
-                      onSelected: (value) {
-                        if (value == 'resolver') {
-                          _resolveUserPost(postId);
-                        } else if (value == 'excluir') {
-                          _deleteUserPost(postId);
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                        if (!isResolved) // Só mostra "Resolver" se não estiver resolvido
+                    // Mostra o PopupMenuButton apenas se o post for do usuário logado
+                    if (isCurrentUserPost)
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: Colors.grey),
+                        onSelected: (value) {
+                          if (value == 'resolver') {
+                            _resolveUserPost(postId);
+                          } else if (value == 'excluir') {
+                            _deleteUserPost(postId);
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                          if (!isResolved)
+                            const PopupMenuItem<String>(
+                              value: 'resolver',
+                              child: ListTile(leading: Icon(Icons.check_circle_outline, color: Colors.green), title: Text('Marcar como Resolvido')),
+                            ),
                           const PopupMenuItem<String>(
-                            value: 'resolver',
-                            child: ListTile(leading: Icon(Icons.check_circle_outline, color: Colors.green), title: Text('Marcar como Resolvido')),
+                            value: 'excluir',
+                            child: ListTile(leading: Icon(Icons.delete_outline, color: Colors.red), title: Text('Excluir Post')),
                           ),
-                        const PopupMenuItem<String>(
-                          value: 'excluir',
-                          child: ListTile(leading: Icon(Icons.delete_outline, color: Colors.red), title: Text('Excluir Post')),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
-                // Adiciona o status do post se ele estiver resolvido
                  if (isResolved)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
-                      child: Text(
-                        'RESOLVIDO',
-                        style: TextStyle(
-                            color: Colors.green[700],
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12),
-                      ),
+                      child: Text('RESOLVIDO', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold, fontSize: 12)),
                     )
-                  else // Só mostra o status 'Achado'/'Perdido' se não estiver resolvido
+                  else
                     Container(
-                      margin: const EdgeInsets.only(top: 4.0, bottom: 8.0), // Espaçamento para o status
+                      margin: const EdgeInsets.only(top: 4.0, bottom: 8.0),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
                         color: isFound ? const Color(0xFF15AF12) : const Color(0xFFFF9900),
@@ -439,7 +452,6 @@ class _PerfilState extends State<Perfil> {
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ),
-                // const SizedBox(height: 8), // Removido para usar o margin acima
                 Text(description, style: const TextStyle(fontSize: 14, color: Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
                 Text('Data: $date', style: TextStyle(fontSize: 12, color: Colors.grey[600])),

@@ -3,10 +3,12 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:find_it/service/auth_service.dart';
-import 'package:find_it/screens/chat/chat_screen.dart'; 
+import 'package:find_it/screens/chat/chat_screen.dart';
+// NOVO IMPORT: Importa o seu widget customizado
+import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
 
 class UserProfileScreen extends StatefulWidget {
-  final String userId; 
+  final String userId;
 
   const UserProfileScreen({
     Key? key,
@@ -20,14 +22,17 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   String nome = 'Carregando...';
   String curso = 'Carregando...';
-  String contato = 'Carregando...'; 
+  // String contato = 'Carregando...'; // Mantido comentado conforme seu código
   String profilePictureUrl = '';
   List<dynamic> _userPosts = [];
   String _selectedTab = 'perdido';
   bool _isLoading = true;
   String? _errorMessage;
+  String? _loggedInUserId;
 
-  String? _loggedInUserId; 
+  // Define o índice para a BottomNavBar.
+  // Como esta tela é de "visita", usamos o Feed (0) como referência.
+  final int _bottomNavCurrentIndex = 0; 
 
   @override
   void initState() {
@@ -41,6 +46,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _carregarDadosDaPagina() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -50,6 +56,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       await _fetchUserData(widget.userId);
       await _fetchUserPosts(widget.userId);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
@@ -71,16 +78,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       headers: {'Authorization': 'Bearer $token'},
     );
 
+    if (!mounted) return;
     if (response.statusCode == 200) {
       final responseData = jsonDecode(utf8.decode(response.bodyBytes));
-      if (mounted) {
-        setState(() {
-          nome = responseData['nome'] ?? 'Nome não informado';
-          curso = responseData['curso'] ?? 'Curso não informado';
-          contato = responseData['telefone'] ?? 'Contato não informado'; 
-          profilePictureUrl = responseData['profilePicture'] ?? '';
-        });
-      }
+      setState(() {
+        nome = responseData['nome'] ?? 'Nome não informado';
+        curso = responseData['curso'] ?? 'Curso não informado';
+        // contato = responseData['telefone'] ?? 'Contato não informado';
+        profilePictureUrl = responseData['profilePicture'] ?? '';
+      });
     } else {
       final errorData = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(errorData['message'] ?? 'Erro ao carregar dados do usuário');
@@ -96,13 +102,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       headers: {'Authorization': 'Bearer $token'},
     );
 
+    if (!mounted) return;
     if (response.statusCode == 200) {
       final responseData = jsonDecode(utf8.decode(response.bodyBytes));
-      if (mounted) {
-        setState(() {
-          _userPosts = responseData;
-        });
-      }
+      setState(() {
+        _userPosts = responseData;
+      });
     } else {
       final errorData = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(errorData['message'] ?? 'Erro ao carregar os posts do usuário');
@@ -114,6 +119,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return DateFormat('dd/MM/yyyy').format(DateTime.parse(rawDate));
     } catch (e) {
       return rawDate;
+    }
+  }
+
+  // NOVA FUNÇÃO: Lógica de navegação para a BottomNavBar
+  void _onBottomNavTapped(int index) {
+    // Não precisamos de setState aqui para _bottomNavCurrentIndex,
+    // pois esta tela não é um dos itens principais da barra.
+    // A navegação simplesmente leva para outras seções.
+
+    if (index == 0) { // Feed
+      // Para voltar ao Feed a partir de uma tela interna como esta,
+      // popUntil é uma boa forma de limpar a pilha até a rota raiz.
+      Navigator.popUntil(context, ModalRoute.withName('/'));
+    } else if (index == 1) { // Novo Post
+      Navigator.pushNamed(context, '/create-post');
+    } else if (index == 2) { // Perfil (do usuário logado)
+      // Se o perfil visitado for o do próprio usuário logado, não faz nada.
+      // Caso contrário, navega para o perfil do usuário logado.
+      if (widget.userId != _loggedInUserId) {
+         Navigator.pushNamed(context, '/profile');
+      } else {
+        // Se já está no perfil do usuário logado (este cenário não deveria acontecer
+        // se esta é UserProfileScreen para outros), mas por segurança:
+        Navigator.popUntil(context, ModalRoute.withName('/profile',));
+      }
     }
   }
 
@@ -219,6 +249,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ],
                 ),
+      // ADICIONADO: CustomBottomNavBar
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _bottomNavCurrentIndex,
+        onTap: _onBottomNavTapped,
+      ),
     );
   }
 

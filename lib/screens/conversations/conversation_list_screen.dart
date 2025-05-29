@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/screens/chat/chat_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
 
 class ConversationListScreen extends StatefulWidget {
   const ConversationListScreen({Key? key}) : super(key: key);
@@ -17,6 +18,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   String? _currentUserId;
+  final int _bottomNavCurrentIndex = 0; 
 
   @override
   void initState() {
@@ -26,8 +28,8 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
 
   Future<void> _loadData() async {
     _currentUserId = await AuthService.getUserId();
+    if (!mounted) return;
     if (_currentUserId == null) {
-
       setState(() {
         _isLoading = false;
         _errorMessage = "Usuário não autenticado.";
@@ -38,12 +40,14 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   }
 
   Future<void> _fetchConversations() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     final token = await AuthService.getToken();
     if (token == null) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = "Autenticação necessária.";
@@ -57,6 +61,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         headers: {'Authorization': 'Bearer $token'},
       );
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final String responseBody = utf8.decode(response.bodyBytes);
         setState(() {
@@ -71,6 +76,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Erro de conexão: $e';
         _isLoading = false;
@@ -79,14 +85,16 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   }
 
   String _getOtherParticipantName(List<dynamic> participants) {
+    if (_currentUserId == null) return 'Desconhecido';
     final otherParticipant = participants.firstWhere(
       (p) => p['_id'] != _currentUserId,
-      orElse: () => null, 
+      orElse: () => null,
     );
     return otherParticipant?['nome'] ?? 'Desconhecido';
   }
 
   String? _getOtherParticipantProfilePic(List<dynamic> participants) {
+    if (_currentUserId == null) return null;
     final otherParticipant = participants.firstWhere(
       (p) => p['_id'] != _currentUserId,
       orElse: () => null,
@@ -95,13 +103,29 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   }
 
   String _getOtherParticipantId(List<dynamic> participants) {
+    if (_currentUserId == null) return '';
     final otherParticipant = participants.firstWhere(
       (p) => p['_id'] != _currentUserId,
-      orElse: () => {'_id': ''}, 
+      orElse: () => {'_id': ''},
     );
     return otherParticipant['_id'] ?? '';
   }
 
+  void _onBottomNavTapped(int index) {
+    final currentRouteName = ModalRoute.of(context)?.settings.name;
+
+    if (index == 0) { // Feed
+      if (currentRouteName != '/') {
+        Navigator.popUntil(context, ModalRoute.withName('/'));
+      }
+    } else if (index == 1) { // Novo Post
+      Navigator.pushNamed(context, '/create-post');
+    } else if (index == 2) { // Perfil
+      if (currentRouteName != '/profile') {
+        Navigator.pushNamed(context, '/profile');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,14 +139,26 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? Center(child: Text(_errorMessage!))
+              ? Center(child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(_errorMessage!, textAlign: TextAlign.center),
+                ))
               : _conversations.isEmpty
-                  ? const Center(child: Text('Nenhuma conversa encontrada.'))
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_outline, size: 60, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          const Text('Nenhuma conversa encontrada.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        ],
+                      )
+                    )
                   : RefreshIndicator(
                       onRefresh: _fetchConversations,
                       child: ListView.separated(
                         itemCount: _conversations.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1, indent: 70),
+                        separatorBuilder: (context, index) => const Divider(height: 1, indent: 70, endIndent: 16),
                         itemBuilder: (context, index) {
                           final conversation = _conversations[index];
                           final List<dynamic> participants = conversation['participants'] ?? [];
@@ -131,11 +167,14 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                           final otherParticipantId = _getOtherParticipantId(participants);
                           final lastMessage = conversation['lastMessage'];
                           
-                          String lastMessageContent = "Nenhuma mensagem ainda.";
+                          String lastMessageContent = "Inicie a conversa!";
                           String lastMessageTime = "";
 
-                          if(lastMessage != null){
-                            lastMessageContent = lastMessage['content'] ?? "Nenhuma mensagem.";
+                          if (lastMessage != null) {
+                            lastMessageContent = lastMessage['content'] ?? "Mensagem...";
+                            if (lastMessage['sender']?['_id'] == _currentUserId) {
+                              lastMessageContent = "Você: $lastMessageContent";
+                            }
                             if (lastMessage['createdAt'] != null) {
                                 try {
                                   lastMessageTime = DateFormat('HH:mm').format(DateTime.parse(lastMessage['createdAt']).toLocal());
@@ -145,15 +184,16 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                             }
                           }
 
-
                           return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             leading: CircleAvatar(
                               radius: 28,
+                              backgroundColor: Colors.grey[200],
                               backgroundImage: otherParticipantProfilePic != null && otherParticipantProfilePic.isNotEmpty
                                   ? NetworkImage(otherParticipantProfilePic)
                                   : null,
-                              child: otherParticipantProfilePic == null || otherParticipantProfilePic.isEmpty
-                                  ? const Icon(Icons.person, size: 28)
+                              child: (otherParticipantProfilePic == null || otherParticipantProfilePic.isEmpty)
+                                  ? const Icon(Icons.person, size: 28, color: Colors.white)
                                   : null,
                             ),
                             title: Text(otherParticipantName, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -161,25 +201,36 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                               lastMessageContent,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: Colors.grey[600]),
                             ),
                             trailing: Text(lastMessageTime, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                             onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ChatScreen(
-                                    conversationId: conversation['_id'],
-                                    recipientId: otherParticipantId, 
-                                    recipientName: otherParticipantName,
-                                    recipientProfilePic: otherParticipantProfilePic,
+                              if (otherParticipantId.isNotEmpty) { 
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatScreen(
+                                      conversationId: conversation['_id'],
+                                      recipientId: otherParticipantId, 
+                                      recipientName: otherParticipantName,
+                                      recipientProfilePic: otherParticipantProfilePic,
+                                    ),
                                   ),
-                                ),
-                              ).then((_) => _fetchConversations()); 
+                                ).then((_) => _fetchConversations()); 
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Não foi possível abrir a conversa. Tente novamente.'), backgroundColor: Colors.orange)
+                                );
+                              }
                             },
                           );
                         },
                       ),
                     ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _bottomNavCurrentIndex,
+        onTap: _onBottomNavTapped,
+      ),
     );
   }
 }

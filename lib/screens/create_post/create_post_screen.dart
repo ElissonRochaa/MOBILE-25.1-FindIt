@@ -4,10 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:find_it/service/auth_service.dart';
-import 'package:find_it/screens/feed/feed_screen.dart';
-import 'package:mime/mime.dart'; // Já estava importado, ótimo!
-import 'package:http_parser/http_parser.dart'; // Já estava importado, ótimo!
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
+import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({Key? key}) : super(key: key);
@@ -17,7 +17,7 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  final _formKey = GlobalKey<FormState>(); // Adicionado para validação de formulário
+  final _formKey = GlobalKey<FormState>();
 
   String? _selectedStatus;
   final TextEditingController _nomeController = TextEditingController();
@@ -29,6 +29,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
 
+  final int _bottomNavCurrentIndex = 1;
+
+  void _onBottomNavTapped(int index) {
+    final currentRouteName = ModalRoute.of(context)?.settings.name;
+
+    if (index == 0) { // Feed
+      if (currentRouteName != '/') {
+        Navigator.pushReplacementNamed(context, '/');
+      }
+    } else if (index == 2) { // Perfil
+      if (currentRouteName != '/profile') {
+        Navigator.pushNamed(context, '/profile');
+      }
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,9 +53,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         title: const Text('Nova Postagem', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
         centerTitle: true,
         elevation: 0,
-        // Removido automaticallyImplyLeading para evitar conflito se for pushNamed
       ),
-      body: Form( // Envolve com um Form para usar o _formKey
+      body: Form(
         key: _formKey,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -96,7 +112,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     decoration: const InputDecoration(border: InputBorder.none),
                     hint: Row(
                       children: [
-                        Icon(Icons.help_outline, color: Colors.grey[600]), // Ícone alterado para mais genérico
+                        Icon(Icons.help_outline, color: Colors.grey[600]),
                         const SizedBox(width: 12),
                         Text('Status (achado/perdido)*', style: TextStyle(color: Colors.grey[600])),
                       ],
@@ -104,7 +120,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     items: ['achado', 'perdido'].map((String value) {
                       return DropdownMenuItem<String>(
                         value: value,
-                        child: Text(value[0].toUpperCase() + value.substring(1)), // Capitalizado
+                        child: Text(value[0].toUpperCase() + value.substring(1)),
                       );
                     }).toList(),
                     onChanged: (newValue) {
@@ -137,21 +153,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        selectedItemColor: const Color(0xFF1D8BC9),
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacementNamed(context, '/');
-          } else if (index == 2) {
-            Navigator.pushReplacementNamed(context, '/profile');
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Feed'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Novo Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
-        ],
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _bottomNavCurrentIndex, 
+        onTap: _onBottomNavTapped,      
       ),
     );
   }
@@ -179,7 +183,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           borderSide: const BorderSide(color: Color(0xFF1D8BC9), width: 2),
         ),
       ),
-      validator: (value) { // Adicionado validador básico
+      validator: (value) {
         if (isRequired && (value == null || value.isEmpty)) {
           return 'Este campo é obrigatório.';
         }
@@ -193,11 +197,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 365)), // Limita a data futura
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
       setState(() {
-        // AJUSTE 2: Formato da data para YYYY-MM-DD
         _dataController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
@@ -213,74 +216,45 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _publicarPostagem() async {
-    // Adicionada validação de formulário e imagem
     if (!_formKey.currentState!.validate()) return;
 
     if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, adicione uma foto para o item.'),
-          backgroundColor: Colors.orange,
-        ),
+        const SnackBar(content: Text('Por favor, adicione uma foto para o item.'), backgroundColor: Colors.orange),
       );
       return;
     }
 
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final token = await AuthService.getToken();
-      if (token == null) {
-        throw Exception('Usuário não autenticado');
-      }
+      if (token == null) throw Exception('Usuário não autenticado');
 
       var uri = Uri.parse('http://localhost:8080/api/v1/posts');
       var request = http.MultipartRequest('POST', uri);
 
       request.headers['Authorization'] = 'Bearer $token';
-      // request.headers['Accept'] = 'application/json'; // Pode ser removido, Multer lida bem
-
-      // Campos esperados pelo backend
       request.fields['nomeItem'] = _nomeController.text;
       request.fields['descricao'] = _descricaoController.text;
-      // AJUSTE 1: Nome do campo da data corrigido para 'dataOcorrencia'
-      request.fields['dataOcorrencia'] = _dataController.text; 
+      request.fields['dataOcorrencia'] = _dataController.text;
       request.fields['situacao'] = _selectedStatus!;
-      // AJUSTE 3: Campo 'local' não é enviado para este endpoint,
-      // pois o backend não o espera. O campo no formulário pode ser mantido
-      // para uso futuro ou removido se não for necessário.
-      // request.fields['local'] = _localController.text; 
+      // request.fields['local'] = _localController.text; // Campo local não é enviado
 
-      // Adiciona a imagem
       final mimeType = lookupMimeType(_imageFile!.path) ?? 'application/octet-stream';
       final mediaType = MediaType.parse(mimeType);
-
-      var multipartFile = await http.MultipartFile.fromPath(
-        'foto', // Nome do campo esperado pelo Multer no backend
-        _imageFile!.path,
-        contentType: mediaType,
-      );
+      var multipartFile = await http.MultipartFile.fromPath('foto', _imageFile!.path, contentType: mediaType);
       request.files.add(multipartFile);
       
-
       var response = await request.send();
-      final responseBody = await response.stream.bytesToString(); // Ler o corpo para qualquer caso
+      final responseBody = await response.stream.bytesToString();
 
       if (response.statusCode == 201) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post criado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Post criado com sucesso!'), backgroundColor: Colors.green),
         );
-        Navigator.pushReplacement( // Usar pushReplacement para não poder voltar para a tela de criar
-          context,
-          MaterialPageRoute(builder: (context) => const FeedScreen()),
-        );
+        Navigator.pushReplacementNamed(context, '/'); // Leva para o feed após criar
       } else {
         final errorData = json.decode(responseBody);
         throw Exception(errorData['message'] ?? 'Erro ${response.statusCode} ao criar post');
@@ -288,21 +262,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
-
-  // Removido _validateForm() pois TextFormField já faz a validação com _formKey
 
   @override
   void dispose() {

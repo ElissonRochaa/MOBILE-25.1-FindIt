@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/screens/user_profile/user_profile_screen.dart';
+// NOVO IMPORT: Importa o seu widget customizado
+import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
 
 class PostDetailScreen extends StatefulWidget {
   final Map<String, dynamic> post;
@@ -24,6 +26,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _isPostingComment = false;
   String? _currentUserId;
 
+  // Define o índice para a BottomNavBar.
+  // Para esta tela, podemos usar 0 (Feed) como referência.
+  final int _bottomNavCurrentIndex = 0; 
+
   @override
   void initState() {
     super.initState();
@@ -32,29 +38,31 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _loadInitialData() async {
     _currentUserId = await AuthService.getUserId();
+    if (!mounted) return; // Checa se o widget ainda está na árvore
     _fetchComments();
   }
 
   Future<void> _fetchComments() async {
+    if (!mounted) return;
     setState(() => _isLoadingComments = true);
     try {
       final response = await http.get(
         Uri.parse('http://localhost:8080/api/v1/posts/${widget.post['_id']}/comments'),
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final String responseBody = utf8.decode(response.bodyBytes);
-        if (mounted) {
-          setState(() {
-            _comments = jsonDecode(responseBody);
-          });
-        }
+        setState(() {
+          _comments = jsonDecode(responseBody);
+        });
       } else {
-         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-         ScaffoldMessenger.of(context).showSnackBar(
+        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorData['message'] ?? 'Erro ao buscar comentários.'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro de conexão ao buscar comentários.'), backgroundColor: Colors.red),
       );
@@ -67,14 +75,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _addComment() async {
     if (_commentController.text.isEmpty || _isPostingComment) return;
+    if (!mounted) return;
     setState(() => _isPostingComment = true);
+    
     final token = await AuthService.getToken();
     if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você precisa estar logado para comentar.'), backgroundColor: Colors.red),
-        );
-        setState(() => _isPostingComment = false);
-        return;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Você precisa estar logado para comentar.'), backgroundColor: Colors.red),
+      );
+      setState(() => _isPostingComment = false);
+      return;
     }
 
     try {
@@ -86,20 +97,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         },
         body: jsonEncode({'texto': _commentController.text}),
       );
-
+      if (!mounted) return;
       if (response.statusCode == 201) {
         _commentController.clear();
-        _fetchComments(); 
+        _fetchComments();
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorData['message'] ?? 'Erro ao adicionar comentário.'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro de conexão ao adicionar comentário.'), backgroundColor: Colors.red),
-        );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro de conexão ao adicionar comentário.'), backgroundColor: Colors.red),
+      );
     } finally {
       if (mounted) {
         setState(() => _isPostingComment = false);
@@ -109,30 +121,32 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _deleteComment(String commentId) async {
     final token = await AuthService.getToken();
-     if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você precisa estar logado para deletar.'), backgroundColor: Colors.red),
-        );
-        return;
+    if (token == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Você precisa estar logado para deletar.'), backgroundColor: Colors.red),
+      );
+      return;
     }
     try {
       final response = await http.delete(
         Uri.parse('http://localhost:8080/api/v1/posts/${widget.post['_id']}/comments/$commentId'),
         headers: {'Authorization': 'Bearer $token'},
       );
-
+      if (!mounted) return;
       if (response.statusCode == 200) {
-        _fetchComments(); 
+        _fetchComments();
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorData['message'] ?? 'Erro ao deletar comentário.'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro de conexão ao deletar comentário.'), backgroundColor: Colors.red),
-        );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro de conexão ao deletar comentário.'), backgroundColor: Colors.red),
+      );
     }
   }
   
@@ -144,7 +158,26 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
-   @override
+  // NOVA FUNÇÃO: Lógica de navegação para a BottomNavBar
+  void _onBottomNavTapped(int index) {
+    final currentRouteName = ModalRoute.of(context)?.settings.name;
+
+    if (index == 0) { // Feed
+      // Para voltar ao Feed a partir de uma tela interna, popUntil é bom.
+      Navigator.popUntil(context, ModalRoute.withName('/'));
+    } else if (index == 1) { // Novo Post
+      Navigator.pushNamed(context, '/create-post');
+    } else if (index == 2) { // Perfil
+      // Se já estiver no perfil do usuário logado, não faz nada,
+      // caso contrário, navega.
+      // Este é o perfil do usuário LOGADO, então usamos /profile
+      if (currentRouteName != '/profile') {
+         Navigator.pushNamed(context, '/profile');
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final String itemName = widget.post['nomeItem'] ?? 'Item';
     final String description = widget.post['descricao'] ?? 'Sem descrição';
@@ -168,7 +201,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // CÓDIGO DA IMAGEM AQUI
                   AspectRatio(
                     aspectRatio: 4 / 3,
                     child: Container(
@@ -189,7 +221,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // CÓDIGO DO TÍTULO E STATUS AQUI
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,6 +292,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           ),
           _buildCommentInputField(),
         ],
+      ),
+      // ADICIONADO: CustomBottomNavBar
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _bottomNavCurrentIndex,
+        onTap: _onBottomNavTapped,
       ),
     );
   }

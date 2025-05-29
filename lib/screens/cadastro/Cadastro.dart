@@ -27,7 +27,9 @@ class _CadastroState extends State<Cadastro> {
   final TextEditingController _cursoController = TextEditingController();
 
   Future<void> _pickImage() async {
-    final pickedImage = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedImage = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
     if (pickedImage != null) {
       setState(() {
         _imageFile = File(pickedImage.path);
@@ -71,7 +73,7 @@ class _CadastroState extends State<Cadastro> {
         ),
       );
     }
-    
+
     try {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -79,7 +81,8 @@ class _CadastroState extends State<Cadastro> {
       if (response.statusCode == 201) {
         _showSuccessDialog();
       } else {
-        final errorMessage = jsonDecode(response.body)['message'] ?? 'Erro ao cadastrar';
+        final errorMessage =
+            jsonDecode(response.body)['message'] ?? 'Erro ao cadastrar';
         _showErrorDialog(errorMessage);
       }
     } catch (e) {
@@ -90,7 +93,7 @@ class _CadastroState extends State<Cadastro> {
       });
     }
   }
-  
+
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -116,7 +119,10 @@ class _CadastroState extends State<Cadastro> {
                   MaterialPageRoute(builder: (context) => const Login()),
                 );
               },
-              child: const Text('OK', style: TextStyle(color: Color(0xff1D8BC9))),
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Color(0xff1D8BC9)),
+              ),
             ),
           ],
         );
@@ -143,7 +149,10 @@ class _CadastroState extends State<Cadastro> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK', style: TextStyle(color: Color(0xff1D8BC9))),
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Color(0xff1D8BC9)),
+              ),
             ),
           ],
         );
@@ -176,27 +185,17 @@ class _CadastroState extends State<Cadastro> {
                 children: [
                   Padding(
                     padding: EdgeInsets.only(top: 5, left: 31, right: 3),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Cadastrar-se",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    child: Center(
+                      child: Text(
+                        "Cadastrar-se",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
                         ),
-                        SizedBox(width: 15),
-                        Image.asset(
-                          "images/min_logo.png",
-                          width: 131,
-                          height: 126,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                  // WIDGET DA FOTO CORRIGIDO
                   Padding(
                     padding: EdgeInsets.only(top: 5, bottom: 30),
                     child: GestureDetector(
@@ -207,20 +206,22 @@ class _CadastroState extends State<Cadastro> {
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           shape: BoxShape.circle,
-                          image: _imageFile != null
-                              ? DecorationImage(
-                                  fit: BoxFit.contain, // Garante que a imagem inteira caiba
-                                  image: FileImage(_imageFile!),
-                                )
-                              : null,
+                          image:
+                              _imageFile != null
+                                  ? DecorationImage(
+                                    fit: BoxFit.contain,
+                                    image: FileImage(_imageFile!),
+                                  )
+                                  : null,
                         ),
-                        child: _imageFile == null
-                            ? Image.asset(
-                                "images/add_photo.png",
-                                width: 135,
-                                height: 135,
-                              )
-                            : null,
+                        child:
+                            _imageFile == null
+                                ? Image.asset(
+                                  "images/add_photo.png",
+                                  width: 135,
+                                  height: 135,
+                                )
+                                : null,
                       ),
                     ),
                   ),
@@ -374,15 +375,16 @@ class _CadastroState extends State<Cadastro> {
                         padding: EdgeInsets.fromLTRB(32, 16, 32, 16),
                         textStyle: TextStyle(fontSize: 20),
                       ),
-                      child: _isLoading
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                              "Cadastrar-se",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                      child:
+                          _isLoading
+                              ? CircularProgressIndicator(color: Colors.white)
+                              : Text(
+                                "Cadastrar-se",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
                     ),
                   ),
                 ],
@@ -396,10 +398,7 @@ class _CadastroState extends State<Cadastro> {
         selectedItemColor: Color(0xff1D8BC9),
         onTap: _onItemTapped,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.login),
-            label: 'Login',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.login), label: 'Login'),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_add),
             label: 'Cadastro',

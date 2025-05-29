@@ -4,8 +4,10 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:find_it/screens/post_detail/post_detail_screen.dart';
 import 'package:find_it/screens/conversations/conversation_list_screen.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO; 
-import 'package:find_it/service/auth_service.dart'; 
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:find_it/service/auth_service.dart';
+// NOVO IMPORT: Importa o seu widget customizado
+import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({Key? key}) : super(key: key);
@@ -18,11 +20,12 @@ class _FeedScreenState extends State<FeedScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  int _bottomNavCurrentIndex = 0; 
-  List<dynamic> _posts = [];
+  int _bottomNavCurrentIndex = 0; // Este estado controla o item ativo da BottomNavBar
+
+  List<dynamic> _allPosts = [];
+  List<dynamic> _filteredPosts = [];
   bool _isLoadingPosts = true;
   String _postsErrorMessage = '';
-
   List<dynamic> _notifications = [];
   int _newNotificationCount = 0;
   IO.Socket? _socket;
@@ -32,95 +35,151 @@ class _FeedScreenState extends State<FeedScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _fetchPosts();
-    _initSocketConnection(); 
+    _initSocketConnection();
 
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging) { 
-        if (_tabController.index == 1) { 
+      if (mounted) {
+        setState(() {});
+      }
+      if (_tabController.indexIsChanging) {
+        if (_tabController.index == 1) {
           if (_newNotificationCount > 0) {
-            setState(() {
-              _newNotificationCount = 0;
-            });
+            if (mounted) {
+              setState(() {
+                _newNotificationCount = 0;
+              });
+            }
           }
         }
       }
     });
+    _searchController.addListener(_filterPosts);
+  }
+
+  void _filterPosts() {
+    final query = _searchController.text.toLowerCase();
+    if (mounted) {
+      setState(() {
+        if (query.isEmpty) {
+          _filteredPosts = List.from(_allPosts);
+        } else {
+          _filteredPosts = _allPosts.where((post) {
+            final itemName = post['nomeItem']?.toString().toLowerCase() ?? '';
+            return itemName.contains(query);
+          }).toList();
+        }
+      });
+    }
   }
 
   Future<void> _initSocketConnection() async {
     final token = await AuthService.getToken();
     if (token == null) {
-      print("FeedScreen Socket: Token não encontrado, socket não será conectado.");
+      print("FeedScreen Socket: Token não encontrado.");
       return;
     }
-
     try {
       _socket = IO.io('http://localhost:8080', <String, dynamic>{
         'transports': ['websocket'],
-        'autoConnect': false, 
+        'autoConnect': false,
         'auth': {'token': token}
       });
-
       _socket!.connect();
-
-      _socket!.onConnect((_) {
-        print('FeedScreen: Conectado ao Socket.IO Server');
-      });
-
+      _socket!.onConnect((_) { print('FeedScreen: Conectado ao Socket.IO Server'); });
       _socket!.on('newPostNotification', (data) {
-        print('FeedScreen: Recebido newPostNotification: ${data['nomeItem']}');
         if (mounted) {
           setState(() {
-            _notifications.insert(0, data); 
+            _notifications.insert(0, data);
             if (_tabController.index != 1) {
               _newNotificationCount++;
             }
           });
         }
       });
-
       _socket!.onDisconnect((_) => print('FeedScreen: Desconectado do Socket.IO Server'));
       _socket!.onError((data) => print('FeedScreen: Socket Error: $data'));
-
     } catch (e) {
       print('FeedScreen: Erro ao conectar ao socket: $e');
     }
   }
 
   Future<void> _fetchPosts() async {
-    setState(() {
-      _isLoadingPosts = true;
-      _postsErrorMessage = '';
-    });
+    if (mounted) {
+      setState(() {
+        _isLoadingPosts = true;
+        _postsErrorMessage = '';
+      });
+    }
     try {
       final response = await http.get(Uri.parse('http://localhost:8080/api/v1/posts'));
-      if (response.statusCode == 200) {
-        final String responseBody = utf8.decode(response.bodyBytes);
-        setState(() { _posts = jsonDecode(responseBody); _isLoadingPosts = false; });
-      } else {
-        setState(() { _postsErrorMessage = 'Erro: ${response.statusCode}'; _isLoadingPosts = false; });
+      if (mounted) {
+        if (response.statusCode == 200) {
+          final String responseBody = utf8.decode(response.bodyBytes);
+          final List<dynamic> fetchedPosts = jsonDecode(responseBody);
+          setState(() {
+            _allPosts = fetchedPosts;
+            _filteredPosts = List.from(_allPosts);
+            _isLoadingPosts = false;
+          });
+          _filterPosts();
+        } else {
+          setState(() {
+            _postsErrorMessage = 'Erro ao carregar posts: ${response.statusCode}';
+            _isLoadingPosts = false;
+          });
+        }
       }
     } catch (e) {
-      setState(() { _postsErrorMessage = 'Erro de conexão: $e'; _isLoadingPosts = false; });
+      if (mounted) {
+        setState(() {
+          _postsErrorMessage = 'Erro de conexão: $e';
+          _isLoadingPosts = false;
+        });
+      }
     }
   }
 
   String _formatDate(String rawDate) {
     try {
-      final date = DateTime.parse(rawDate);
-      return DateFormat('dd/MM/yyyy').format(date);
+      return DateFormat('dd/MM/yyyy').format(DateTime.parse(rawDate));
     } catch (e) { return rawDate; }
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(() {}); 
-    _tabController.dispose();
+    _tabController.dispose(); // O listener é removido automaticamente com o dispose do controller
+    _searchController.removeListener(_filterPosts);
     _searchController.dispose();
-    _socket?.disconnect(); 
+    _socket?.disconnect();
     _socket?.dispose();
     super.dispose();
   }
+
+  // NOVA FUNÇÃO: Lógica de navegação para a BottomNavBar
+  void _onBottomNavTapped(int index) {
+    setState(() {
+      _bottomNavCurrentIndex = index;
+    });
+
+    // Lógica de navegação (use pushReplacementNamed para evitar empilhar a mesma tela)
+    // Adicione verificações para não navegar para a mesma tela se já estiver nela.
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+
+    if (index == 0) { // Feed
+      if (currentRoute != '/') { // Só navega se não estiver já no feed
+        Navigator.pushReplacementNamed(context, '/');
+      } else {
+        _fetchPosts(); // Ou apenas atualiza o feed se já estiver nele
+      }
+    } else if (index == 1) { // Novo Post
+      Navigator.pushNamed(context, '/create-post');
+    } else if (index == 2) { // Perfil
+      if (currentRoute != '/profile') { // Só navega se não estiver já no perfil
+        Navigator.pushNamed(context, '/profile');
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +207,7 @@ class _FeedScreenState extends State<FeedScreen>
             const Tab(text: 'Feed'),
             Tab(
               child: Stack(
-                clipBehavior: Clip.none, 
+                clipBehavior: Clip.none,
                 children: [
                   const Text('Notificações'),
                   if (_newNotificationCount > 0)
@@ -157,14 +216,11 @@ class _FeedScreenState extends State<FeedScreen>
                       right: -12,
                       child: Container(
                         padding: const EdgeInsets.all(5),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                         constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
                         child: Center(
                           child: Text(
-                            '$_newNotificationCount',
+                            _newNotificationCount > 9 ? '9+' : '$_newNotificationCount',
                             style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),
@@ -179,46 +235,37 @@ class _FeedScreenState extends State<FeedScreen>
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Container(
-              decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(30)),
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
-                  hintText: 'Pesquisar',
-                  contentPadding: EdgeInsets.symmetric(vertical: 12),
+          if (_tabController.index == 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Container(
+                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(30)),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    prefixIcon: Icon(Icons.search, color: Colors.grey),
+                    hintText: 'Pesquisar por nome do item...',
+                    contentPadding: EdgeInsets.symmetric(vertical: 15),
+                  ),
                 ),
               ),
             ),
-          ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildFeedContent(), 
-                _buildNotificationsContent(), 
+                _buildFeedContent(),
+                _buildNotificationsContent(),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      // ATUALIZADO: Usando o CustomBottomNavBar
+      bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _bottomNavCurrentIndex,
-        selectedItemColor: const Color(0xFF1D8BC9),
-        onTap: (index) {
-          setState(() => _bottomNavCurrentIndex = index);
-          if (index == 0) { /* Já está no feed ou redireciona se necessário */ }
-          else if (index == 1) { Navigator.pushNamed(context, '/create-post'); }
-          else if (index == 2) { Navigator.pushNamed(context, '/profile'); }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Feed'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Novo Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
-        ],
+        onTap: _onBottomNavTapped, // Passa a função de callback
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _fetchPosts,
@@ -231,15 +278,20 @@ class _FeedScreenState extends State<FeedScreen>
   Widget _buildFeedContent() {
     if (_isLoadingPosts) return const Center(child: CircularProgressIndicator());
     if (_postsErrorMessage.isNotEmpty) return Center(child: Text(_postsErrorMessage));
-    if (_posts.isEmpty) return const Center(child: Text('Nenhum post encontrado'));
+    if (_filteredPosts.isEmpty) {
+      if (_searchController.text.isNotEmpty) {
+        return const Center(child: Text('Nenhum post encontrado com este nome.'));
+      }
+      return const Center(child: Text('Nenhum post encontrado.'));
+    }
     return RefreshIndicator(
       onRefresh: _fetchPosts,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        itemCount: _posts.length,
+        itemCount: _filteredPosts.length,
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          final post = _posts[index];
+          final post = _filteredPosts[index];
           return GestureDetector(
             onTap: () { Navigator.push(context, MaterialPageRoute(builder: (context) => PostDetailScreen(post: post))); },
             child: _buildPostCard(post: post),
@@ -257,18 +309,17 @@ class _FeedScreenState extends State<FeedScreen>
       padding: const EdgeInsets.all(16.0),
       itemCount: _notifications.length,
       itemBuilder: (context, index) {
-        final notificationData = _notifications[index]; 
+        final notificationData = _notifications[index];
         return _buildNotificationCard(notificationData);
       },
     );
   }
 
-  // NOVO WIDGET: Constrói um card para uma notificação
   Widget _buildNotificationCard(Map<String, dynamic> postData) {
     final String imageUrl = postData['fotoUrl'] ?? '';
     final String itemName = postData['nomeItem'] ?? 'Item não identificado';
     final String situacao = postData['situacao'] ?? '';
-    final String dataPostagem = _formatDate(postData['createdAt'] ?? ''); 
+    final String dataPostagem = _formatDate(postData['createdAt'] ?? '');
     final String autorNome = postData['autor']?['nome'] ?? 'Alguém';
 
     return Card(
@@ -282,7 +333,7 @@ class _FeedScreenState extends State<FeedScreen>
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: imageUrl.isNotEmpty
-                ? Image.network(imageUrl, fit: BoxFit.cover, 
+                ? Image.network(imageUrl, fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, color: Colors.grey))
                 : Container(color: Colors.grey[200], child: const Icon(Icons.photo, color: Colors.grey)),
           ),
@@ -293,7 +344,7 @@ class _FeedScreenState extends State<FeedScreen>
             children: <TextSpan>[
               TextSpan(text: '$autorNome postou um item '),
               TextSpan(
-                text: situacao == 'achado' ? 'achado' : 'perdido', 
+                text: situacao == 'achado' ? 'achado' : 'perdido',
                 style: TextStyle(fontWeight: FontWeight.bold, color: situacao == 'achado' ? Colors.green : Colors.orange[700])
               ),
               const TextSpan(text: ': "'),
@@ -302,7 +353,7 @@ class _FeedScreenState extends State<FeedScreen>
             ],
           ),
         ),
-        subtitle: Text(dataPostagem, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        subtitle: Text('Em: $dataPostagem', style: const TextStyle(fontSize: 12, color: Colors.grey)),
         onTap: () {
           Navigator.push(
             context,
