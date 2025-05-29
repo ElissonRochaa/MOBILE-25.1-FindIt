@@ -4,10 +4,11 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:find_it/service/auth_service.dart';
+import 'package:find_it/screens/feed/feed_screen.dart';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
-import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
+import 'package:find_it/widgets/custom_bottom_navbar.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({Key? key}) : super(key: key);
@@ -29,133 +30,417 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
 
+  final FocusNode _nomeFocusNode = FocusNode();
+  final FocusNode _descricaoFocusNode = FocusNode();
+  final FocusNode _dataFocusNode = FocusNode();
+  final FocusNode _localFocusNode = FocusNode();
+  final FocusNode _statusFocusNode = FocusNode(); 
+
+  bool _isNomeFocused = false;
+  bool _isDescricaoFocused = false;
+  bool _isDataFocused = false;
+  bool _isLocalFocused = false;
+  bool _isStatusFocused = false;
+
   final int _bottomNavCurrentIndex = 1;
+  final Color _focusColor = const Color(0xFF1D8BC9);
+  final Color _gradientStartColor = const Color(0xFF1D8BC9);
+  final Color _gradientEndColor = const Color(0xFF01121B);
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeFocusNode.addListener(
+      () => setState(() => _isNomeFocused = _nomeFocusNode.hasFocus),
+    );
+    _descricaoFocusNode.addListener(
+      () => setState(() => _isDescricaoFocused = _descricaoFocusNode.hasFocus),
+    );
+    _dataFocusNode.addListener(
+      () => setState(() => _isDataFocused = _dataFocusNode.hasFocus),
+    );
+    _localFocusNode.addListener(
+      () => setState(() => _isLocalFocused = _localFocusNode.hasFocus),
+    );
+    _statusFocusNode.addListener(
+      () => setState(() => _isStatusFocused = _statusFocusNode.hasFocus),
+    );
+  }
 
   void _onBottomNavTapped(int index) {
     final currentRouteName = ModalRoute.of(context)?.settings.name;
-
-    if (index == 0) { // Feed
-      if (currentRouteName != '/') {
-        Navigator.pushReplacementNamed(context, '/');
+    if (index == 0) {
+      if (currentRouteName != '/feed') {
+        Navigator.pushReplacementNamed(context, '/feed');
       }
-    } else if (index == 2) { // Perfil
+    } else if (index == 2) {
       if (currentRouteName != '/profile') {
         Navigator.pushNamed(context, '/profile');
       }
     }
   }
 
+  InputDecoration _buildStandardInputDecoration({
+    required String labelText,
+    required IconData iconData,
+    required bool isFocused,
+  }) {
+    final Color iconColor = isFocused ? _focusColor : Colors.grey[600]!;
+    final Color focusedInputFillColor = _focusColor.withOpacity(0.1);
+
+    return InputDecoration(
+      filled: true,
+      fillColor: isFocused ? focusedInputFillColor : Colors.transparent,
+      labelText: labelText,
+      labelStyle: TextStyle(color: Colors.grey[600], fontSize: 18),
+      prefixIcon: Padding(
+        padding: const EdgeInsets.only(left: 20, right: 12),
+        child: Icon(iconData, color: iconColor, size: 24),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 25),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: _focusColor, width: 2.0),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: const BorderSide(color: Colors.red, width: 2.0),
+      ),
+    );
+  }
+
+  Widget _buildGradientButton({
+    required VoidCallback? onPressed,
+    required Widget child,
+    bool isLoading = false,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.zero,
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      ),
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_gradientStartColor, _gradientEndColor],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          alignment: Alignment.center,
+          child:
+              isLoading
+                  ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
+                  )
+                  : child,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final Color focusedInputFillColor = _focusColor.withOpacity(0.1);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nova Postagem', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: const Text(
+          'Nova Postagem',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
         centerTitle: true,
         elevation: 0,
+        backgroundColor: const Color(0xffEFEFEF), 
+        iconTheme: const IconThemeData(
+          color: Colors.black,
+        ),
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                onTap: _adicionarFoto,
-                child: Container(
-                  width: double.infinity,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!, width: 1),
-                  ),
-                  child: _imageFile != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(_imageFile!, fit: BoxFit.cover),
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_a_photo, size: 48, color: Colors.grey[400]),
-                            const SizedBox(height: 8),
-                            Text('Adicionar foto do item*', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-                          ],
+      body: Container(
+        color: const Color(0xffEFEFEF), 
+        child: Center(
+          // Centraliza o ConstrainedBox
+          child: ConstrainedBox(
+            // Limita a largura
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: FractionallySizedBox(
+                        widthFactor: 0.9, 
+                        child: GestureDetector(
+                          onTap: _adicionarFoto,
+                          child: Container(
+                            width:
+                                double
+                                    .infinity, 
+                            height: 200, 
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1,
+                              ),
+                              image:
+                                  _imageFile != null
+                                      ? DecorationImage(
+                                        image: FileImage(_imageFile!),
+                                        fit: BoxFit.cover,
+                                      )
+                                      : null,
+                            ),
+                            child:
+                                _imageFile == null
+                                    ? Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.add_a_photo_outlined,
+                                          size: 48,
+                                          color: Colors.grey[500],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Adicionar foto*',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                    : null,
+                          ),
                         ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildFormField(controller: _nomeController, label: 'Nome do item', icon: Icons.title, isRequired: true),
-              const SizedBox(height: 16),
-              _buildFormField(controller: _descricaoController, label: 'Descrição detalhada', icon: Icons.description, maxLines: 4, isRequired: true),
-              const SizedBox(height: 16),
-              _buildFormField(controller: _localController, label: 'Local onde foi encontrado/perdido', icon: Icons.location_on, isRequired: true),
-              const SizedBox(height: 16),
-              GestureDetector(
-                onTap: () => _selectDate(context),
-                child: AbsorbPointer(
-                  child: _buildFormField(controller: _dataController, label: 'Data da ocorrência', icon: Icons.calendar_today, isRequired: true),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedStatus,
-                    decoration: const InputDecoration(border: InputBorder.none),
-                    hint: Row(
-                      children: [
-                        Icon(Icons.help_outline, color: Colors.grey[600]),
-                        const SizedBox(width: 12),
-                        Text('Status (achado/perdido)*', style: TextStyle(color: Colors.grey[600])),
-                      ],
+                      ),
                     ),
-                    items: ['achado', 'perdido'].map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value[0].toUpperCase() + value.substring(1)),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedStatus = newValue;
-                      });
-                    },
-                    validator: (value) => value == null ? 'Selecione um status' : null,
-                  ),
+                    const SizedBox(height: 24),
+                    Padding(
+                      // Adicionado Padding
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: TextFormField(
+                        controller: _nomeController,
+                        focusNode: _nomeFocusNode,
+                        validator:
+                            (value) =>
+                                (value == null || value.isEmpty)
+                                    ? 'Nome do item é obrigatório.'
+                                    : null,
+                        decoration: _buildStandardInputDecoration(
+                          labelText: 'Nome do item*',
+                          iconData: Icons.label_outline,
+                          isFocused: _isNomeFocused,
+                        ),
+                        style: const TextStyle(fontSize: 18),
+                        cursorColor: _focusColor,
+                      ),
+                    ),
+                    Padding(
+                      // Adicionado Padding
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: TextFormField(
+                        controller: _descricaoController,
+                        focusNode: _descricaoFocusNode,
+                        maxLines: 4,
+                        validator:
+                            (value) =>
+                                (value == null || value.isEmpty)
+                                    ? 'Descrição é obrigatória.'
+                                    : null,
+                        decoration: _buildStandardInputDecoration(
+                          labelText: 'Descrição detalhada*',
+                          iconData: Icons.description_outlined,
+                          isFocused: _isDescricaoFocused,
+                        ),
+                        style: const TextStyle(fontSize: 18),
+                        cursorColor: _focusColor,
+                      ),
+                    ),
+                    Padding(
+                      // Adicionado Padding
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: TextFormField(
+                        controller: _localController,
+                        focusNode: _localFocusNode,
+                        validator:
+                            (value) =>
+                                (value == null || value.isEmpty)
+                                    ? 'Local é obrigatório.'
+                                    : null,
+                        decoration: _buildStandardInputDecoration(
+                          labelText: 'Local onde foi encontrado/perdido*',
+                          iconData: Icons.location_on_outlined,
+                          isFocused: _isLocalFocused,
+                        ),
+                        style: const TextStyle(fontSize: 18),
+                        cursorColor: _focusColor,
+                      ),
+                    ),
+                    Padding(
+                      // Adicionado Padding
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: GestureDetector(
+                        onTap: () => _selectDate(context),
+                        child: AbsorbPointer(
+                          child: TextFormField(
+                            controller: _dataController,
+                            focusNode:
+                                _dataFocusNode, 
+                            validator:
+                                (value) =>
+                                    (value == null || value.isEmpty)
+                                        ? 'Data é obrigatória.'
+                                        : null,
+                            decoration: _buildStandardInputDecoration(
+                              labelText: 'Data da ocorrência*',
+                              iconData: Icons.calendar_today_outlined,
+                              isFocused: _isDataFocused,
+                            ),
+                            style: const TextStyle(fontSize: 18),
+                            cursorColor: _focusColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Dropdown estilizado
+                    Padding(
+                      // Adicionado Padding
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Focus(
+                        focusNode: _statusFocusNode,
+                        child: Container(
+                          padding: const EdgeInsets.only(
+                            left: 5,
+                            right: 12,
+                          ), 
+                          decoration: BoxDecoration(
+                            color:
+                                _isStatusFocused
+                                    ? focusedInputFillColor
+                                    : Colors.transparent,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color:
+                                  _isStatusFocused
+                                      ? _focusColor
+                                      : Colors.grey.shade400,
+                              width: _isStatusFocused ? 2.0 : 1.0,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedStatus,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                prefixIcon: Padding(
+                                  // Padding para o ícone do dropdown
+                                  padding: const EdgeInsets.only(
+                                    left: 15,
+                                    right: 12,
+                                  ),
+                                  child: Icon(
+                                    Icons.help_outline,
+                                    color:
+                                        _isStatusFocused
+                                            ? _focusColor
+                                            : Colors.grey[600],
+                                  ),
+                                ),
+                              ),
+                              hint: Text(
+                                'Status (achado/perdido)*',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 18,
+                                ),
+                              ),
+                              items:
+                                  ['achado', 'perdido'].map((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(
+                                        value[0].toUpperCase() +
+                                            value.substring(1),
+                                        style: const TextStyle(fontSize: 18),
+                                      ),
+                                    );
+                                  }).toList(),
+                              onChanged: (newValue) {
+                                setState(() {
+                                  _selectedStatus = newValue;
+                                });
+                              },
+                              validator:
+                                  (value) =>
+                                      value == null
+                                          ? 'Selecione um status'
+                                          : null,
+                              isExpanded:
+                                  true,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24), // Espaço antes do botão
+                    _buildGradientButton(
+                      onPressed: _isLoading ? null : _publicarPostagem,
+                      isLoading: _isLoading,
+                      child: const Text(
+                        'PUBLICAR',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _publicarPostagem,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D8BC9),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                      : const Text('PUBLICAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
         ),
       ),
       bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _bottomNavCurrentIndex, 
-        onTap: _onBottomNavTapped,      
+        currentIndex: _bottomNavCurrentIndex,
+        onTap: _onBottomNavTapped,
       ),
     );
   }
@@ -166,22 +451,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     required IconData icon,
     int maxLines = 1,
     bool isRequired = false,
+    FocusNode?
+    focusNode, 
   }) {
+
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: '$label${isRequired ? '*' : ''}',
-        labelStyle: TextStyle(color: Colors.grey[600]),
-        prefixIcon: Icon(icon, color: const Color(0xFF1D8BC9)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF1D8BC9), width: 2),
-        ),
+      decoration: _buildStandardInputDecoration(
+        labelText:
+            '$label${isRequired ? '*' : ''}', 
+        iconData: icon,
+        isFocused: focusNode?.hasFocus ?? false, 
       ),
       validator: (value) {
         if (isRequired && (value == null || value.isEmpty)) {
@@ -189,6 +471,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         }
         return null;
       },
+      style: const TextStyle(fontSize: 18),
+      cursorColor: _focusColor,
     );
   }
 
@@ -198,6 +482,18 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        // Para estilizar o DatePicker
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(primary: _focusColor),
+            buttonTheme: const ButtonThemeData(
+              textTheme: ButtonTextTheme.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -207,7 +503,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _adicionarFoto() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -220,7 +519,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, adicione uma foto para o item.'), backgroundColor: Colors.orange),
+        const SnackBar(
+          content: Text('Por favor, adicione uma foto para o item.'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -239,30 +541,42 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       request.fields['descricao'] = _descricaoController.text;
       request.fields['dataOcorrencia'] = _dataController.text;
       request.fields['situacao'] = _selectedStatus!;
-      // request.fields['local'] = _localController.text; // Campo local não é enviado
 
-      final mimeType = lookupMimeType(_imageFile!.path) ?? 'application/octet-stream';
+      final mimeType =
+          lookupMimeType(_imageFile!.path) ?? 'application/octet-stream';
       final mediaType = MediaType.parse(mimeType);
-      var multipartFile = await http.MultipartFile.fromPath('foto', _imageFile!.path, contentType: mediaType);
+      var multipartFile = await http.MultipartFile.fromPath(
+        'foto',
+        _imageFile!.path,
+        contentType: mediaType,
+      );
       request.files.add(multipartFile);
-      
+
       var response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
+      if (!mounted) return;
       if (response.statusCode == 201) {
-        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post criado com sucesso!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Post criado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
         );
-        Navigator.pushReplacementNamed(context, '/'); // Leva para o feed após criar
+        Navigator.pushReplacementNamed(context, '/feed');
       } else {
         final errorData = json.decode(responseBody);
-        throw Exception(errorData['message'] ?? 'Erro ${response.statusCode} ao criar post');
+        throw Exception(
+          errorData['message'] ?? 'Erro ${response.statusCode} ao criar post',
+        );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) {
@@ -277,6 +591,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     _descricaoController.dispose();
     _dataController.dispose();
     _localController.dispose();
+    _nomeFocusNode.dispose();
+    _descricaoFocusNode.dispose();
+    _dataFocusNode.dispose();
+    _localFocusNode.dispose();
+    _statusFocusNode.dispose();
     super.dispose();
   }
 }

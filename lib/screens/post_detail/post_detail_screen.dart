@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/screens/user_profile/user_profile_screen.dart';
-// NOVO IMPORT: Importa o seu widget customizado
 import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
 
 class PostDetailScreen extends StatefulWidget {
@@ -26,8 +25,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _isPostingComment = false;
   String? _currentUserId;
 
-  // Define o índice para a BottomNavBar.
-  // Para esta tela, podemos usar 0 (Feed) como referência.
   final int _bottomNavCurrentIndex = 0; 
 
   @override
@@ -38,7 +35,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _loadInitialData() async {
     _currentUserId = await AuthService.getUserId();
-    if (!mounted) return; // Checa se o widget ainda está na árvore
+    if (!mounted) return; 
     _fetchComments();
   }
 
@@ -57,14 +54,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         });
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorData['message'] ?? 'Erro ao buscar comentários.'), backgroundColor: Colors.red),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorData['message'] ?? 'Erro ao buscar comentários.'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro de conexão ao buscar comentários.'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Erro de conexão ao buscar comentários: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) {
@@ -110,7 +109,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro de conexão ao adicionar comentário.'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Erro de conexão ao adicionar comentário: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) {
@@ -121,13 +120,39 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _deleteComment(String commentId) async {
     final token = await AuthService.getToken();
-    if (token == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Você precisa estar logado para deletar.'), backgroundColor: Colors.red),
-      );
-      return;
+     if (token == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você precisa estar logado para deletar.'), backgroundColor: Colors.red),
+        );
+        return;
     }
+    final bool? confirmDelete = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text('Confirmar Exclusão'),
+          content: const Text('Tem certeza que deseja excluir este comentário?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(ctx).pop(false);
+              },
+            ),
+            TextButton(
+              child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(ctx).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmDelete != true) return;
+
     try {
       final response = await http.delete(
         Uri.parse('http://localhost:8080/api/v1/posts/${widget.post['_id']}/comments/$commentId'),
@@ -136,6 +161,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       if (!mounted) return;
       if (response.statusCode == 200) {
         _fetchComments();
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Comentário excluído com sucesso!'), backgroundColor: Colors.green),
+        );
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,7 +173,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro de conexão ao deletar comentário.'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Erro de conexão ao deletar comentário: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -158,19 +186,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
-  // NOVA FUNÇÃO: Lógica de navegação para a BottomNavBar
   void _onBottomNavTapped(int index) {
     final currentRouteName = ModalRoute.of(context)?.settings.name;
 
-    if (index == 0) { // Feed
-      // Para voltar ao Feed a partir de uma tela interna, popUntil é bom.
-      Navigator.popUntil(context, ModalRoute.withName('/'));
-    } else if (index == 1) { // Novo Post
-      Navigator.pushNamed(context, '/create-post');
-    } else if (index == 2) { // Perfil
-      // Se já estiver no perfil do usuário logado, não faz nada,
-      // caso contrário, navega.
-      // Este é o perfil do usuário LOGADO, então usamos /profile
+    if (index == 0) {
+      Navigator.popUntil(context, ModalRoute.withName('/feed'));
+    } else if (index == 1) {
+      if (currentRouteName != '/create-post') {
+         Navigator.pushNamed(context, '/create-post');
+      }
+    } else if (index == 2) {
       if (currentRouteName != '/profile') {
          Navigator.pushNamed(context, '/profile');
       }
@@ -190,9 +215,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalhes do Post', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Detalhes do Post',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
         centerTitle: true,
+        backgroundColor: const Color(0xffEFEFEF),
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
+      backgroundColor: const Color(0xffEFEFEF),
       body: Column(
         children: [
           Expanded(
@@ -206,13 +238,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: Colors.grey[200],
                         image: imageUrl.isNotEmpty
                             ? DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover)
                             : null,
                       ),
                       child: imageUrl.isEmpty
-                          ? const Center(child: Icon(Icons.photo, size: 80, color: Colors.white))
+                          ? Center(child: Icon(Icons.photo_outlined, size: 80, color: Colors.grey[400]))
                           : null,
                     ),
                   ),
@@ -226,11 +258,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: Text(itemName,
-                                  style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1D8BC9))),
+                              child: Text(
+                                itemName,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1D8BC9),
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Container(
@@ -262,7 +297,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 25,
-                                backgroundColor: Colors.grey[400],
+                                backgroundColor: Colors.grey[300],
                                 backgroundImage: userProfilePic.isNotEmpty ? NetworkImage(userProfilePic) : null,
                                 child: userProfilePic.isEmpty ? const Icon(Icons.person, size: 24, color: Colors.white) : null,
                               ),
@@ -278,9 +313,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        Text(description, style: const TextStyle(fontSize: 16, height: 1.5)),
+                        Text(
+                          description,
+                          style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87),
+                        ),
                         const SizedBox(height: 32),
-                        const Text('Comentários', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Comentários',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
                         const SizedBox(height: 16),
                         _buildCommentsSection(),
                       ],
@@ -293,7 +334,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           _buildCommentInputField(),
         ],
       ),
-      // ADICIONADO: CustomBottomNavBar
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _bottomNavCurrentIndex,
         onTap: _onBottomNavTapped,
@@ -303,10 +343,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Widget _buildCommentsSection() {
     if (_isLoadingComments) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
     if (_comments.isEmpty) {
-      return const Center(child: Text('Nenhum comentário ainda. Seja o primeiro!'));
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20.0),
+          child: Text('Nenhum comentário ainda. Seja o primeiro!', style: TextStyle(color: Colors.grey)),
+        ),
+      );
     }
     return ListView.builder(
       shrinkWrap: true,
@@ -322,17 +372,31 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget _buildComment({required Map<String, dynamic> comment}) {
     final author = comment['autor'];
     final commentAuthorId = author?['_id']?.toString();
-    final postAuthorId = widget.post['autor']?['_id']?.toString();
-    final bool canDelete = (_currentUserId != null && (_currentUserId == commentAuthorId || _currentUserId == postAuthorId));
+    final bool canDelete = (_currentUserId != null && 
+                           (commentAuthorId == _currentUserId || widget.post['autor']?['_id']?.toString() == _currentUserId)
+                          );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0E0E0),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          )
+        ],
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: Colors.grey[300],
+            backgroundColor: Colors.grey[200],
             backgroundImage: author?['profilePicture'] != null && author['profilePicture'].isNotEmpty
                 ? NetworkImage(author['profilePicture'])
                 : null,
@@ -347,52 +411,80 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               children: [
                 Text(author?['nome'] ?? 'Usuário', style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text(comment['texto'] ?? '', style: const TextStyle(height: 1.4)),
+                Text(comment['texto'] ?? '', style: const TextStyle(height: 1.4, color: Colors.black87)),
               ],
             ),
           ),
           if (canDelete)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.grey),
-              onPressed: () => _deleteComment(comment['_id']),
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.delete_outline, color: Colors.grey[600], size: 20),
+                onPressed: () => _deleteComment(comment['_id']),
+              ),
             )
         ],
       ),
     );
   }
 
-  Widget _buildCommentInputField() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey[200]!, width: 1)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(24)),
-              child: TextField(
-                controller: _commentController,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(hintText: 'Adicione um comentário...', border: InputBorder.none),
+ // ...existing code...
+Widget _buildCommentInputField() {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+    decoration: BoxDecoration(
+      color: const Color(0xffEFEFEF),
+      border: Border(top: BorderSide(color: Colors.grey, width: 1)),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFE0E0E0), // Alterado: tom igual aos cards de comentário
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                )
+              ],
+            ),
+            child: TextField(
+              controller: _commentController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                hintText: 'Adicione um comentário...', 
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
+              minLines: 1,
+              maxLines: 3,
             ),
           ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF1D8BC9)),
-            child: IconButton(
-              icon: _isPostingComment 
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-                  : const Icon(Icons.send, color: Colors.white),
-              onPressed: _addComment,
+        ),
+        const SizedBox(width: 8),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: _addComment,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF1D8BC9)),
+              child: _isPostingComment 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                  : const Icon(Icons.send, color: Colors.white, size: 20),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+// ...existing code...
 }

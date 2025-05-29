@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/screens/chat/chat_screen.dart';
-// NOVO IMPORT: Importa o seu widget customizado
 import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
 
 class UserProfileScreen extends StatefulWidget {
@@ -22,7 +21,6 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   String nome = 'Carregando...';
   String curso = 'Carregando...';
-  // String contato = 'Carregando...'; // Mantido comentado conforme seu código
   String profilePictureUrl = '';
   List<dynamic> _userPosts = [];
   String _selectedTab = 'perdido';
@@ -30,8 +28,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String? _errorMessage;
   String? _loggedInUserId;
 
-  // Define o índice para a BottomNavBar.
-  // Como esta tela é de "visita", usamos o Feed (0) como referência.
+ 
   final int _bottomNavCurrentIndex = 0; 
 
   @override
@@ -84,7 +81,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       setState(() {
         nome = responseData['nome'] ?? 'Nome não informado';
         curso = responseData['curso'] ?? 'Curso não informado';
-        // contato = responseData['telefone'] ?? 'Contato não informado';
         profilePictureUrl = responseData['profilePicture'] ?? '';
       });
     } else {
@@ -122,26 +118,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  // NOVA FUNÇÃO: Lógica de navegação para a BottomNavBar
   void _onBottomNavTapped(int index) {
-    // Não precisamos de setState aqui para _bottomNavCurrentIndex,
-    // pois esta tela não é um dos itens principais da barra.
-    // A navegação simplesmente leva para outras seções.
+
 
     if (index == 0) { // Feed
-      // Para voltar ao Feed a partir de uma tela interna como esta,
-      // popUntil é uma boa forma de limpar a pilha até a rota raiz.
+  
       Navigator.popUntil(context, ModalRoute.withName('/'));
-    } else if (index == 1) { // Novo Post
+    } else if (index == 1) { 
       Navigator.pushNamed(context, '/create-post');
-    } else if (index == 2) { // Perfil (do usuário logado)
-      // Se o perfil visitado for o do próprio usuário logado, não faz nada.
-      // Caso contrário, navega para o perfil do usuário logado.
+    } else if (index == 2) { 
+
       if (widget.userId != _loggedInUserId) {
          Navigator.pushNamed(context, '/profile');
       } else {
-        // Se já está no perfil do usuário logado (este cenário não deveria acontecer
-        // se esta é UserProfileScreen para outros), mas por segurança:
+      
         Navigator.popUntil(context, ModalRoute.withName('/profile',));
       }
     }
@@ -249,7 +239,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ],
                 ),
-      // ADICIONADO: CustomBottomNavBar
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _bottomNavCurrentIndex,
         onTap: _onBottomNavTapped,
