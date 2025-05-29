@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
+import 'package:provider/provider.dart'; // Importa o Provider
+import 'package:find_it/service/theme_service.dart'; // Importa seu ThemeNotifier
 
 class Perfil extends StatefulWidget {
   const Perfil({super.key});
@@ -20,16 +22,20 @@ class _PerfilState extends State<Perfil> {
   String contato = 'Carregando...';
   String profilePictureUrl = '';
   List<dynamic> _userPosts = [];
-  String _selectedTab = 'perdido';
+  String _selectedTab = 'perdido'; 
   bool _isLoading = true;
   String? _errorMessage;
   String? _currentUserId; 
 
-  final int _bottomNavCurrentIndex = 2;
+  final int _bottomNavCurrentIndex = 2; // Perfil é o índice 2
 
-  final Color _gradientStartColor = const Color(0xFF1D8BC9);
-  final Color _gradientEndColor = const Color(0xFF01121B);
-  final Color _pageBackgroundColor = const Color(0xffEFEFEF); 
+  // Cores para o gradiente do botão de filtro (podem vir do tema se preferir)
+  // Estas são usadas no _buildGradientButton, que por sua vez usa cores do tema.
+  // Portanto, não são estritamente necessárias aqui se _buildGradientButton for atualizado
+  // para pegar as cores do gradiente do ThemeNotifier também, ou usar a cor primária do tema.
+  // final Color _gradientStartColor = const Color(0xFF1D8BC9); 
+  // final Color _gradientEndColor = const Color(0xFF01121B); 
+
 
   @override
   void initState() {
@@ -64,26 +70,25 @@ class _PerfilState extends State<Perfil> {
     }
   }
 
-  Future<void> _fetchUserData() async {
+  Future<void> _fetchUserData() async { 
     final token = await AuthService.getToken();
     if (token == null) throw Exception('Usuário não autenticado');
 
     final response = await http.get(
-      Uri.parse('http://localhost:8080/api/v1/users/profile'),
+      Uri.parse('http://localhost:8080/api/v1/users/profile'), 
       headers: {'Authorization': 'Bearer $token'},
     );
 
+    if (!mounted) return;
     if (response.statusCode == 200) {
       final responseData = jsonDecode(utf8.decode(response.bodyBytes));
-      if (mounted) {
-        setState(() {
-          nome = responseData['nome'] ?? 'Nome não informado';
-          curso = responseData['curso'] ?? 'Curso não informado';
-          contato = responseData['telefone'] ?? 'Contato não informado';
-          profilePictureUrl = responseData['profilePicture'] ?? '';
-          _currentUserId = responseData['_id'] ?? _currentUserId;
-        });
-      }
+      setState(() {
+        nome = responseData['nome'] ?? 'Nome não informado';
+        curso = responseData['curso'] ?? 'Curso não informado';
+        contato = responseData['telefone'] ?? 'Contato não informado';
+        profilePictureUrl = responseData['profilePicture'] ?? '';
+        _currentUserId = responseData['_id'] ?? _currentUserId;
+      });
     } else {
       final errorData = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(errorData['message'] ?? 'Erro ao carregar dados do usuário');
@@ -99,13 +104,12 @@ class _PerfilState extends State<Perfil> {
       headers: {'Authorization': 'Bearer $token'},
     );
 
+    if (!mounted) return;
     if (response.statusCode == 200) {
       final responseData = jsonDecode(utf8.decode(response.bodyBytes));
-      if (mounted) {
-        setState(() {
-          _userPosts = responseData;
-        });
-      }
+      setState(() {
+        _userPosts = responseData;
+      });
     } else {
       final errorData = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(errorData['message'] ?? 'Erro ao carregar os posts do usuário');
@@ -117,7 +121,7 @@ class _PerfilState extends State<Perfil> {
       context,
       MaterialPageRoute(builder: (context) => const EditarPerfil()),
     );
-    if (resultado == true) {
+    if (resultado == true && mounted) {
       _carregarDadosDaPagina();
     }
   }
@@ -126,14 +130,13 @@ class _PerfilState extends State<Perfil> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: const Text('Sair da Conta'),
         content: const Text('Tem certeza que deseja sair?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)))),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sair', style: TextStyle(color: Colors.redAccent)),
+            child: Text('Sair', style: TextStyle(color: Colors.redAccent.shade100)),
           ),
         ],
       ),
@@ -164,21 +167,19 @@ class _PerfilState extends State<Perfil> {
   String _formatDate(String rawDate) {
     try {
       return DateFormat('dd/MM/yyyy').format(DateTime.parse(rawDate));
-    } catch (e) {
-      return rawDate;
-    }
+    } catch (e) { return rawDate; }
   }
 
   Future<void> _deleteUserPost(String postId) async {
-     final confirmar = await showDialog<bool>(
+    final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        shape: Theme.of(context).dialogTheme.shape,
         title: const Text('Confirmar Exclusão'),
         content: const Text('Tem certeza que deseja excluir este post? Esta ação não pode ser desfeita.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Excluir', style: TextStyle(color: Colors.redAccent))),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text('Cancelar', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)))),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text('Excluir', style: TextStyle(color: Colors.redAccent.shade100))),
         ],
       ),
     );
@@ -208,15 +209,15 @@ class _PerfilState extends State<Perfil> {
   }
 
   Future<void> _resolveUserPost(String postId) async {
-     final confirmar = await showDialog<bool>(
+    final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        shape: Theme.of(context).dialogTheme.shape,
         title: const Text('Marcar como Resolvido'),
         content: const Text('Tem certeza que deseja marcar este item como resolvido? Ele não aparecerá mais no feed principal.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Resolver', style: TextStyle(color: Colors.green))),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text('Cancelar', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)))),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text('Resolver', style: TextStyle(color: Colors.green.shade600))),
         ],
       ),
     );
@@ -248,44 +249,49 @@ class _PerfilState extends State<Perfil> {
   void _onBottomNavTapped(int index) {
     final currentRouteName = ModalRoute.of(context)?.settings.name;
     if (index == 0) {
-      if (currentRouteName != '/feed') {
-        Navigator.pushReplacementNamed(context, '/feed');
-      }
+      if (currentRouteName != '/feed') Navigator.pushReplacementNamed(context, '/feed');
     } else if (index == 1) {
-      if (currentRouteName != '/create-post') {
-        Navigator.pushNamed(context, '/create-post');
-      }
+      if (currentRouteName != '/create-post') Navigator.pushNamed(context, '/create-post');
     }
   }
 
   Widget _buildGradientButton({
     required VoidCallback? onPressed,
     required Widget child,
-    double borderRadius = 20.0, 
+    double borderRadius = 20.0,
   }) {
+    // Usando cores do tema para o gradiente
+    final ThemeData theme = Theme.of(context);
+    // Para o tema claro, usa o azul primário e uma variação escura.
+    // Para o tema escuro, usa o azul claro de acento e uma variação mais escura dele.
+    final Color gradStart = theme.brightness == Brightness.light 
+        ? theme.primaryColor 
+        : theme.colorScheme.primary; // Que é Colors.blue[300] no tema escuro
+    final Color gradEnd = theme.brightness == Brightness.light 
+        ? Color.lerp(theme.primaryColor, Colors.black, 0.3)!
+        : Color.lerp(theme.colorScheme.primary, Colors.black, 0.4)!; // Escurece o azul de acento
+
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.zero, 
-        backgroundColor: Colors.transparent, 
+        padding: EdgeInsets.zero,
+        backgroundColor: Colors.transparent,
         shadowColor: Colors.transparent,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(borderRadius),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadius)),
       ),
-      child: Ink( 
+      child: Ink(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [_gradientStartColor, _gradientEndColor],
-            begin: Alignment.centerLeft, 
+            colors: [gradStart, gradEnd],
+            begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(borderRadius),
         ),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12), 
+          padding: const EdgeInsets.symmetric(vertical: 12),
           alignment: Alignment.center,
           child: child,
         ),
@@ -295,81 +301,121 @@ class _PerfilState extends State<Perfil> {
 
   @override
   Widget build(BuildContext context) {
+    final themeNotifier = Provider.of<ThemeNotifier>(context, listen: false);
+    final ThemeData theme = Theme.of(context);
+    final Color pageBackgroundColor = theme.scaffoldBackgroundColor;
+    final Color appBarBackgroundColor = theme.appBarTheme.backgroundColor ?? pageBackgroundColor;
+    final Color appBarForegroundColor = theme.appBarTheme.titleTextStyle?.color ?? theme.colorScheme.onSurface;
+    final IconThemeData appBarIconTheme = theme.appBarTheme.iconTheme ?? IconThemeData(color: appBarForegroundColor);
+    final Color primaryColor = theme.primaryColor;
+    final Color? textSecondaryColor = theme.textTheme.bodyMedium?.color;
+
     final displayedPosts = _userPosts.where((post) {
-      if (post['situacao'] == 'resolvido') return false;
-      return post['situacao'] == _selectedTab;
+      // Lógica de filtro original: não mostra resolvidos nas abas 'perdido' ou 'achado'
+      if (_selectedTab == 'perdido' && post['situacao'] != 'perdido') return false;
+      if (_selectedTab == 'achado' && post['situacao'] != 'achado') return false;
+      // Se a aba for 'resolvido', mostra apenas os resolvidos
+      if (_selectedTab == 'resolvido' && post['situacao'] != 'resolvido') return false;
+      // Se não for a aba 'resolvido', e o post estiver resolvido, não mostra
+      if (_selectedTab != 'resolvido' && post['situacao'] == 'resolvido') return false;
+
+      return true;
     }).toList();
 
     return Scaffold(
-       backgroundColor: _pageBackgroundColor, 
+      backgroundColor: pageBackgroundColor,
       appBar: AppBar(
-        title: const Text('Perfil', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)), 
+        title: Text('Perfil', style: TextStyle(fontWeight: FontWeight.bold, color: appBarForegroundColor)),
         centerTitle: true,
-        backgroundColor: _pageBackgroundColor, 
-        elevation: 0, 
-        iconTheme: const IconThemeData(color: Colors.black87), 
+        backgroundColor: appBarBackgroundColor,
+        elevation: theme.appBarTheme.elevation ?? 0,
+        iconTheme: appBarIconTheme,
         actions: [
-          IconButton(icon: const Icon(Icons.logout, color: Colors.redAccent), onPressed: _fazerLogout, tooltip: 'Sair'),
+          // BOTÃO DE SELEÇÃO DE TEMA ADICIONADO AQUI
+          PopupMenuButton<ThemeMode>(
+            icon: Icon(Icons.palette_outlined, color: appBarIconTheme.color),
+            tooltip: "Mudar Tema",
+            onSelected: (ThemeMode mode) {
+              themeNotifier.setThemeMode(mode);
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<ThemeMode>>[
+              const PopupMenuItem<ThemeMode>(
+                value: ThemeMode.light,
+                child: ListTile(leading: Icon(Icons.wb_sunny_outlined), title: Text('Claro')),
+              ),
+              const PopupMenuItem<ThemeMode>(
+                value: ThemeMode.dark,
+                child: ListTile(leading: Icon(Icons.nightlight_round), title: Text('Escuro')),
+              ),
+              const PopupMenuItem<ThemeMode>(
+                value: ThemeMode.system,
+                child: ListTile(leading: Icon(Icons.settings_brightness_outlined), title: Text('Padrão do Sistema')),
+              ),
+            ],
+          ),
+          IconButton(icon: Icon(Icons.logout, color: Colors.redAccent.shade200), onPressed: _fazerLogout, tooltip: 'Sair'),
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
+          ? Center(child: CircularProgressIndicator(color: primaryColor))
           : _errorMessage != null
               ? Center(child: Padding(padding: const EdgeInsets.all(16.0), child: Text('Erro: $_errorMessage', textAlign: TextAlign.center, style: TextStyle(color: Colors.red[700]))))
-              : Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      color: _pageBackgroundColor, 
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Colors.grey[300], 
-                            backgroundImage: profilePictureUrl.isNotEmpty ? NetworkImage(profilePictureUrl) : null,
-                            child: profilePictureUrl.isEmpty ? Icon(Icons.person, size: 45, color: Colors.grey[500]) : null,
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(nome, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColorDark)),
-                                const SizedBox(height: 6),
-                                Text(curso, style: TextStyle(fontSize: 15, color: Colors.grey[700])),
-                                const SizedBox(height: 4),
-                                Text(contato, style: TextStyle(fontSize: 15, color: Colors.grey[700])),
-                              ],
+              : Container(
+                  color: pageBackgroundColor,
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: theme.hoverColor,
+                              backgroundImage: profilePictureUrl.isNotEmpty ? NetworkImage(profilePictureUrl) : null,
+                              child: profilePictureUrl.isEmpty ? Icon(Icons.person, size: 45, color: textSecondaryColor?.withOpacity(0.7)) : null,
                             ),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.edit_outlined, color: Theme.of(context).primaryColor), 
-                            onPressed: _navegarParaEdicao,
-                            tooltip: 'Editar Perfil',
-                          ),
-                        ],
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(nome, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryColor)),
+                                  const SizedBox(height: 6),
+                                  Text(curso, style: TextStyle(fontSize: 15, color: textSecondaryColor)),
+                                  const SizedBox(height: 4),
+                                  Text(contato, style: TextStyle(fontSize: 15, color: textSecondaryColor)),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.edit_outlined, color: primaryColor),
+                              onPressed: _navegarParaEdicao,
+                              tooltip: 'Editar Perfil',
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-           
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      color: _pageBackgroundColor, 
-                      child: Row(
-                        children: [
-                          _buildFilterButton('Perdidos', 'perdido'),
-                          const SizedBox(width: 12),
-                          _buildFilterButton('Achados', 'achado'),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Row(
+                          children: [
+                            _buildFilterButton('Perdidos', 'perdido'),
+                            const SizedBox(width: 12),
+                            _buildFilterButton('Achados', 'achado'),
+                            const SizedBox(width: 12),
+                            _buildFilterButton('Resolvidos', 'resolvido'), // Botão para resolvidos
+                          ],
+                        ),
                       ),
-                    ),
-                  
-                    Expanded(
-                      child: Container( 
-                        color: _pageBackgroundColor,
+                      Divider(height: 1, color: theme.dividerColor.withOpacity(0.5)),
+                      Expanded(
                         child: displayedPosts.isEmpty
-                            ? Center(child: Text('Nenhum item $_selectedTab para mostrar.', style: TextStyle(color: Colors.grey[600], fontSize: 16)))
+                            ? Center(child: Text(
+                                _isLoading ? 'Carregando posts...' : 'Nenhum item para mostrar nesta categoria.', 
+                                style: TextStyle(color: textSecondaryColor, fontSize: 16)
+                              ))
                             : ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 itemCount: displayedPosts.length,
                                 itemBuilder: (context, index) {
                                   final post = displayedPosts[index];
@@ -379,9 +425,9 @@ class _PerfilState extends State<Perfil> {
                                   );
                                 },
                               ),
-                      )
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _bottomNavCurrentIndex,
@@ -392,11 +438,13 @@ class _PerfilState extends State<Perfil> {
 
   Widget _buildFilterButton(String text, String status) {
     final bool isActive = _selectedTab == status;
+    final theme = Theme.of(context);
+
     if (isActive) {
       return Expanded(
         child: _buildGradientButton(
           onPressed: () => setState(() => _selectedTab = status),
-          borderRadius: 25.0, 
+          borderRadius: 25.0,
           child: Text(text, style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600)),
         ),
       );
@@ -405,14 +453,14 @@ class _PerfilState extends State<Perfil> {
         child: ElevatedButton(
           onPressed: () => setState(() => _selectedTab = status),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.grey[700],
+            backgroundColor: theme.cardColor.withOpacity(0.8),
+            foregroundColor: theme.textTheme.bodyLarge?.color?.withOpacity(0.7),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
-              side: BorderSide(color: Colors.grey[300]!) 
+              side: BorderSide(color: theme.dividerColor.withOpacity(0.5))
             ),
             padding: const EdgeInsets.symmetric(vertical: 12),
-            elevation: 1, 
+            elevation: 0.5,
           ),
           child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
         ),
@@ -431,18 +479,43 @@ class _PerfilState extends State<Perfil> {
     final String postAuthorId = post['autor']?['_id']?.toString() ?? '';
     final bool isCurrentUserPost = (_currentUserId != null && postAuthorId == _currentUserId);
 
+    final theme = Theme.of(context);
+    final cardColor = theme.cardColor;
+    final titleColor = theme.colorScheme.primary;
+    final descriptionColor = theme.textTheme.bodyMedium?.color ?? (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87);
+    final dateColor = theme.textTheme.bodySmall?.color ?? Colors.grey[600];
+    final iconMoreColor = (theme.iconTheme.color ?? (theme.brightness == Brightness.dark ? Colors.white70 : Colors.black54)).withOpacity(0.7);
+    
+    String statusText;
+    Color statusTagBackgroundColor;
+    Color statusTextColor;
+
+    if (isResolved) {
+      statusText = 'RESOLVIDO';
+      statusTagBackgroundColor = Colors.blueGrey.withOpacity(theme.brightness == Brightness.dark ? 0.3 : 0.1);
+      statusTextColor = theme.brightness == Brightness.dark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
+    } else if (isFound) {
+      statusText = 'ACHADO';
+      statusTagBackgroundColor = Colors.green.withOpacity(theme.brightness == Brightness.dark ? 0.3 : 0.1);
+      statusTextColor = theme.brightness == Brightness.dark ? Colors.green.shade300 : Colors.green.shade800;
+    } else {
+      statusText = 'PERDIDO';
+      statusTagBackgroundColor = Colors.orange.withOpacity(theme.brightness == Brightness.dark ? 0.3 : 0.1);
+      statusTextColor = theme.brightness == Brightness.dark ? Colors.orange.shade300 : Colors.orange.shade900;
+    }
+    
     return Card(
-      clipBehavior: Clip.antiAlias, 
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
-      elevation: 3,
-      color: Colors.white, 
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: theme.cardTheme.elevation ?? 2,
+      color: cardColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Container(
-              color: Colors.grey[200],
+              color: theme.hoverColor,
               child: imageUrl.isNotEmpty
                   ? Image.network(imageUrl, fit: BoxFit.cover,
                       loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
@@ -452,92 +525,76 @@ class _PerfilState extends State<Perfil> {
                             value: loadingProgress.expectedTotalBytes != null
                                 ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
                                 : null,
+                            color: theme.primaryColor,
                           ),
                         );
                       },
-                      errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 40)),)
+                      errorBuilder: (context, error, stackTrace) => Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey[400], size: 40)),)
                   : Center(child: Icon(Icons.photo_library_outlined, size: 50, color: Colors.grey[400])),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16), 
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start, 
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Text(
-                        itemName, 
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColorDark)
+                        itemName,
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: titleColor)
                       )
                     ),
                     if (isCurrentUserPost)
-                      SizedBox( 
+                      SizedBox(
                         width: 40,
                         height: 30,
                         child: PopupMenuButton<String>(
-                          icon: Icon(Icons.more_vert, color: Colors.grey[600], size: 20),
+                          icon: Icon(Icons.more_vert, color: iconMoreColor, size: 22),
                           tooltip: "Opções",
                           onSelected: (value) {
-                            if (value == 'resolver') {
-                              _resolveUserPost(postId);
-                            } else if (value == 'excluir') {
-                              _deleteUserPost(postId);
-                            }
+                            if (value == 'resolver') _resolveUserPost(postId);
+                            else if (value == 'excluir') _deleteUserPost(postId);
                           },
                           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
                             if (!isResolved)
-                              const PopupMenuItem<String>(
+                              PopupMenuItem<String>(
                                 value: 'resolver',
-                                child: Row(children: [Icon(Icons.check_circle_outline, color: Colors.green), SizedBox(width: 8), Text('Resolvido')]),
+                                child: Row(children: [Icon(Icons.check_circle_outline, color: Colors.green.shade600), const SizedBox(width: 8), const Text('Resolvido')]),
                               ),
-                            const PopupMenuItem<String>(
+                            PopupMenuItem<String>(
                               value: 'excluir',
-                              child: Row(children: [Icon(Icons.delete_outline, color: Colors.redAccent), SizedBox(width: 8), Text('Excluir')]),
+                              child: Row(children: [Icon(Icons.delete_outline, color: Colors.redAccent.shade100), const SizedBox(width: 8), const Text('Excluir')]),
                             ),
                           ],
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 6), // Espaçamento ajustado
-                 if (isResolved)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8.0),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: Colors.green.shade300)
-                      ),
-                      child: Text(
-                        'RESOLVIDO', 
-                        style: TextStyle(color: Colors.green[800], fontWeight: FontWeight.bold, fontSize: 11)
-                      ),
+                const SizedBox(height: 6),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: statusTagBackgroundColor,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: isResolved 
+                             ? Colors.blueGrey.shade300.withOpacity(0.5)
+                             : (isFound ? Colors.green.shade300.withOpacity(0.5) : Colors.orange.shade300.withOpacity(0.5))
                     )
-                  else
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8.0),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: isFound ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(15),
-                         border: Border.all(color: isFound ? Colors.green.shade300 : Colors.orange.shade300)
-                      ),
-                      child: Text(
-                        isFound ? 'ACHADO' : 'PERDIDO',
-                        style: TextStyle(
-                          color: isFound ? Colors.green[800] : Colors.orange[900], 
-                          fontWeight: FontWeight.bold, fontSize: 11
-                        ),
-                      ),
-                    ),
-                Text(description, style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.3), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(color: statusTextColor, fontWeight: FontWeight.bold, fontSize: 11)
+                  ),
+                ),
+                Text(description, style: TextStyle(fontSize: 14, color: descriptionColor, height: 1.3), maxLines: 2, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 10),
-                Text('Data: $date', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                Text('Data: $date', style: TextStyle(fontSize: 12, color: dateColor)),
               ],
             ),
           ),

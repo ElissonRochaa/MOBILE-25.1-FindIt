@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:find_it/screens/login/Login.dart';
 import 'package:mime/mime.dart';
@@ -39,11 +38,6 @@ class _CadastroState extends State<Cadastro> {
   bool _isSenhaFocused = false;
   bool _isTelefoneFocused = false;
   bool _isCursoFocused = false;
-
-  final Color _focusColor = const Color(0xFF1D8BC9);
-  // Cores do gradiente para o botão
-  final Color _gradientStartColor = const Color(0xFF1D8BC9);
-  final Color _gradientEndColor = const Color(0xFF01121B);
 
   @override
   void initState() {
@@ -145,6 +139,8 @@ class _CadastroState extends State<Cadastro> {
 
   void _showSuccessDialog() {
     if (!mounted) return;
+    final theme = Theme.of(context);
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -152,14 +148,14 @@ class _CadastroState extends State<Cadastro> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.check_circle, color: Colors.green, size: 30),
               SizedBox(width: 10),
-              Text('Sucesso!'),
+              Text('Sucesso!', style: theme.textTheme.titleLarge),
             ],
           ),
-          content: const Text('Cadastro realizado com sucesso!'),
+          content: Text('Cadastro realizado com sucesso!', style: theme.textTheme.bodyMedium),
           actions: [
             TextButton(
               onPressed: () {
@@ -169,9 +165,9 @@ class _CadastroState extends State<Cadastro> {
                   MaterialPageRoute(builder: (context) => const Login()),
                 );
               },
-              child: const Text(
+              child: Text(
                 'OK',
-                style: TextStyle(color: Color(0xff1D8BC9)),
+                style: TextStyle(color: theme.primaryColor),
               ),
             ),
           ],
@@ -182,6 +178,8 @@ class _CadastroState extends State<Cadastro> {
 
   void _showErrorDialog(String message) {
     if (!mounted) return;
+    final theme = Theme.of(context);
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -189,20 +187,20 @@ class _CadastroState extends State<Cadastro> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.error, color: Colors.red, size: 30),
               SizedBox(width: 10),
-              Text('Erro'),
+              Text('Erro', style: theme.textTheme.titleLarge),
             ],
           ),
-          content: Text(message),
+          content: Text(message, style: theme.textTheme.bodyMedium),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
+              child: Text(
                 'OK',
-                style: TextStyle(color: Color(0xff1D8BC9)),
+                style: TextStyle(color: theme.primaryColor),
               ),
             ),
           ],
@@ -231,38 +229,39 @@ class _CadastroState extends State<Cadastro> {
     required String imagePath,
     required bool isFocused,
   }) {
-    final Color iconColor = isFocused ? _focusColor : Colors.grey[600]!;
-    final Color focusedInputFillColor = _focusColor.withOpacity(0.1);
+    final theme = Theme.of(context);
+    final Color iconColor = isFocused ? theme.primaryColor : theme.hintColor;
+    final Color focusedInputFillColor = theme.primaryColor.withOpacity(0.1);
 
     return InputDecoration(
       filled: true,
-      fillColor: isFocused ? focusedInputFillColor : Colors.transparent,
+      fillColor: isFocused ? focusedInputFillColor : theme.cardColor.withOpacity(0.5),
       contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 25),
       hintText: hintText,
-      hintStyle: TextStyle(color: Colors.grey[600], fontSize: 18),
+      hintStyle: TextStyle(color: theme.hintColor, fontSize: 18),
       prefixIcon: Padding(
         padding: const EdgeInsets.only(left: 20, right: 12),
         child: Image.asset(imagePath, width: 24, height: 24, color: iconColor),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
+        borderSide: BorderSide(color: theme.dividerColor, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: _focusColor, width: 2.0),
+        borderSide: BorderSide(color: theme.primaryColor, width: 2.0),
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
+        borderSide: BorderSide(color: theme.dividerColor, width: 1),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        borderSide: BorderSide(color: Colors.redAccent.shade400, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
-        borderSide: const BorderSide(color: Colors.red, width: 2.0),
+        borderSide: BorderSide(color: Colors.redAccent.shade400, width: 2.0),
       ),
     );
   }
@@ -272,6 +271,10 @@ class _CadastroState extends State<Cadastro> {
     required Widget child,
     bool isLoading = false,
   }) {
+    final theme = Theme.of(context);
+    final Color gradStart = theme.primaryColor;
+    final Color gradEnd = Color.lerp(theme.primaryColor, Colors.black, 0.3)!;
+
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -280,37 +283,32 @@ class _CadastroState extends State<Cadastro> {
         shadowColor: Colors.transparent,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            30,
-          ), 
+          borderRadius: BorderRadius.circular(30),
         ),
       ),
       child: Ink(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [_gradientStartColor, _gradientEndColor],
+            colors: [gradStart, gradEnd],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(30),
         ),
         child: Container(
-          width: double.infinity, 
-          padding: const EdgeInsets.symmetric(
-            vertical: 16,
-          ), 
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
           alignment: Alignment.center,
-          child:
-              isLoading
-                  ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 3,
-                    ),
-                  )
-                  : child,
+          child: isLoading
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                )
+              : child,
         ),
       ),
     );
@@ -318,36 +316,30 @@ class _CadastroState extends State<Cadastro> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final Color pageBackgroundColor = theme.scaffoldBackgroundColor;
+    final Color? textColor = theme.textTheme.bodyLarge?.color;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(color: Color(0xffEFEFEF)),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ), 
+        decoration: BoxDecoration(color: pageBackgroundColor),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Center(
           child: ConstrainedBox(
-            // Limita a largura máxima do formulário
-            constraints: const BoxConstraints(
-              maxWidth: 500,
-            ), 
+            constraints: const BoxConstraints(maxWidth: 500),
             child: SingleChildScrollView(
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .stretch,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(
-                        top: 40,
-                        bottom: 20,
-                      ), // Aumenta padding no topo
-                      child: const Text(
+                      padding: const EdgeInsets.only(top: 40, bottom: 20),
+                      child: Text(
                         "Cadastrar-se",
-                        textAlign: TextAlign.center, 
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.black,
+                          color: textColor,
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                         ),
@@ -362,30 +354,26 @@ class _CadastroState extends State<Cadastro> {
                             width: 130,
                             height: 130,
                             decoration: BoxDecoration(
-                              color: Colors.grey[300],
+                              color: theme.hoverColor,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: _focusColor.withOpacity(0.5),
+                                color: theme.primaryColor.withOpacity(0.5),
                                 width: 2,
-                              ), 
-                              image:
-                                  _imageFile != null
-                                      ? DecorationImage(
-                                        fit:
-                                            BoxFit
-                                                .cover, 
-                                        image: FileImage(_imageFile!),
-                                      )
-                                      : null,
+                              ),
+                              image: _imageFile != null
+                                  ? DecorationImage(
+                                      fit: BoxFit.cover,
+                                      image: FileImage(_imageFile!),
+                                    )
+                                  : null,
                             ),
-                            child:
-                                _imageFile == null
-                                    ? Icon(
-                                      Icons.add_a_photo,
-                                      size: 60,
-                                      color: Colors.grey[500],
-                                    ) // Ícone maior
-                                    : null,
+                            child: _imageFile == null
+                                ? Icon(
+                                    Icons.add_a_photo,
+                                    size: 60,
+                                    color: theme.hintColor,
+                                  )
+                                : null,
                           ),
                         ),
                       ),
@@ -396,11 +384,14 @@ class _CadastroState extends State<Cadastro> {
                         controller: _nomeController,
                         focusNode: _nomeFocusNode,
                         validator: (value) {
-                          /* ... */
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, digite seu nome';
+                          }
+                          return null;
                         },
                         keyboardType: TextInputType.text,
-                        cursorColor: _focusColor,
-                        style: const TextStyle(fontSize: 18),
+                        cursorColor: theme.primaryColor,
+                        style: TextStyle(fontSize: 18, color: textColor),
                         decoration: _buildInputDecoration(
                           hintText: "Digite seu nome",
                           imagePath: "images/smile.png",
@@ -414,11 +405,17 @@ class _CadastroState extends State<Cadastro> {
                         controller: _emailController,
                         focusNode: _emailFocusNode,
                         validator: (value) {
-                          /* ... */
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, digite seu email';
+                          }
+                          if (!value.contains('@') || !value.contains('.')) {
+                            return 'Digite um email válido';
+                          }
+                          return null;
                         },
                         keyboardType: TextInputType.emailAddress,
-                        cursorColor: _focusColor,
-                        style: const TextStyle(fontSize: 18),
+                        cursorColor: theme.primaryColor,
+                        style: TextStyle(fontSize: 18, color: textColor),
                         decoration: _buildInputDecoration(
                           hintText: "Digite seu email",
                           imagePath: "images/emailicon.png",
@@ -432,11 +429,17 @@ class _CadastroState extends State<Cadastro> {
                         controller: _senhaController,
                         focusNode: _senhaFocusNode,
                         validator: (value) {
-                          /* ... */
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, digite sua senha';
+                          }
+                          if (value.length < 6) {
+                            return 'A senha deve ter pelo menos 6 caracteres';
+                          }
+                          return null;
                         },
                         obscureText: true,
-                        cursorColor: _focusColor,
-                        style: const TextStyle(fontSize: 18),
+                        cursorColor: theme.primaryColor,
+                        style: TextStyle(fontSize: 18, color: textColor),
                         decoration: _buildInputDecoration(
                           hintText: "Digite sua senha",
                           imagePath: "images/lock.png",
@@ -450,11 +453,14 @@ class _CadastroState extends State<Cadastro> {
                         controller: _telefoneController,
                         focusNode: _telefoneFocusNode,
                         validator: (value) {
-                          /* ... */
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, digite seu telefone';
+                          }
+                          return null;
                         },
                         keyboardType: TextInputType.phone,
-                        cursorColor: _focusColor,
-                        style: const TextStyle(fontSize: 18),
+                        cursorColor: theme.primaryColor,
+                        style: TextStyle(fontSize: 18, color: textColor),
                         decoration: _buildInputDecoration(
                           hintText: "Telefone para contato",
                           imagePath: "images/phone.png",
@@ -468,11 +474,14 @@ class _CadastroState extends State<Cadastro> {
                         controller: _cursoController,
                         focusNode: _cursoFocusNode,
                         validator: (value) {
-                          /* ... */
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, digite seu curso';
+                          }
+                          return null;
                         },
                         keyboardType: TextInputType.text,
-                        cursorColor: _focusColor,
-                        style: const TextStyle(fontSize: 18),
+                        cursorColor: theme.primaryColor,
+                        style: TextStyle(fontSize: 18, color: textColor),
                         decoration: _buildInputDecoration(
                           hintText: "Curso de origem",
                           imagePath: "images/book.png",
@@ -490,7 +499,7 @@ class _CadastroState extends State<Cadastro> {
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 18, 
+                            fontSize: 18,
                           ),
                         ),
                       ),
@@ -504,9 +513,9 @@ class _CadastroState extends State<Cadastro> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        selectedItemColor: _focusColor,
+        selectedItemColor: theme.primaryColor,
         onTap: _onItemTapped,
-        backgroundColor: const Color(0xffEFEFEF),
+        backgroundColor: theme.cardColor,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.login), label: 'Login'),
           BottomNavigationBarItem(

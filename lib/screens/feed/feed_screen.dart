@@ -31,7 +31,6 @@ class _FeedScreenState extends State<FeedScreen>
 
   final FocusNode _searchFocusNode = FocusNode();
   bool _isSearchFocused = false;
-  final Color _focusColor = const Color(0xFF1D8BC9); 
 
   @override
   void initState() {
@@ -212,30 +211,31 @@ class _FeedScreenState extends State<FeedScreen>
 
   @override
   Widget build(BuildContext context) {
-    final Color focusedSearchInputFillColor = _focusColor.withOpacity(0.1);
+    final theme = Theme.of(context);
+    final Color focusedSearchInputFillColor = theme.primaryColor.withOpacity(0.1);
 
     return Scaffold(
-      backgroundColor: const Color(0xffEFEFEF), 
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Align(
+        title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
             'Feed',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: theme.textTheme.titleLarge?.color,
             ),
           ),
         ),
-        backgroundColor: const Color(0xffEFEFEF), 
-        elevation: 0, 
-        iconTheme: const IconThemeData(color: Colors.black), 
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: 0,
+        iconTheme: theme.appBarTheme.iconTheme,
         actions: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.chat_bubble_outline_rounded,
-              color: Colors.black,
+              color: theme.iconTheme.color,
             ),
             tooltip: 'Minhas Conversas',
             onPressed: () {
@@ -250,12 +250,12 @@ class _FeedScreenState extends State<FeedScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: _focusColor,
-          unselectedLabelColor: Colors.grey[600], 
-          indicatorColor: _focusColor, 
-          indicatorWeight: 3.0, 
+          labelColor: theme.primaryColor,
+          unselectedLabelColor: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+          indicatorColor: theme.primaryColor,
+          indicatorWeight: 3.0,
           tabs: [
-            const Tab(text: 'Achados & Perdidos'), 
+            const Tab(text: 'Achados & Perdidos'),
             Tab(
               child: Stack(
                 clipBehavior: Clip.none,
@@ -263,13 +263,13 @@ class _FeedScreenState extends State<FeedScreen>
                   const Text('Notificações'),
                   if (_newNotificationCount > 0)
                     Positioned(
-                      top: -5, 
-                      right: -15, 
+                      top: -5,
+                      right: -15,
                       child: Container(
-                        padding: const EdgeInsets.all(2), 
+                        padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           color: Colors.red,
-                          borderRadius: BorderRadius.circular(8), 
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         constraints: const BoxConstraints(
                           minWidth: 16,
@@ -295,23 +295,27 @@ class _FeedScreenState extends State<FeedScreen>
         ),
       ),
       body: Container(
-        color: const Color(0xffEFEFEF), 
+        color: theme.scaffoldBackgroundColor,
         child: Column(
           children: [
             if (_tabController.index == 0)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Container( 
+                child: Container(
                   decoration: BoxDecoration(
-                    color: _isSearchFocused ? focusedSearchInputFillColor : Colors.white, 
+                    color: _isSearchFocused 
+                        ? focusedSearchInputFillColor 
+                        : theme.cardColor,
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
-                      color: _isSearchFocused ? _focusColor : Colors.grey.shade300, 
+                      color: _isSearchFocused 
+                          ? theme.primaryColor 
+                          : theme.dividerColor,
                       width: _isSearchFocused ? 1.5 : 1.0,
                     ),
-                     boxShadow: [
-                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.shadowColor.withOpacity(0.1),
                         spreadRadius: 1,
                         blurRadius: 3,
                         offset: const Offset(0, 1),
@@ -320,20 +324,28 @@ class _FeedScreenState extends State<FeedScreen>
                   ),
                   child: TextField(
                     controller: _searchController,
-                    focusNode: _searchFocusNode, 
-                    cursorColor: _focusColor,
-                    style: const TextStyle(fontSize: 16, color: Colors.black87),
+                    focusNode: _searchFocusNode,
+                    cursorColor: theme.primaryColor,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: theme.textTheme.bodyMedium?.color,
+                    ),
                     decoration: InputDecoration(
-                      border: InputBorder.none, 
+                      border: InputBorder.none,
                       prefixIcon: Icon(
-                        Icons.search, 
-                        color: _isSearchFocused ? _focusColor : Colors.grey[600]
+                        Icons.search,
+                        color: _isSearchFocused 
+                            ? theme.primaryColor 
+                            : theme.iconTheme.color?.withOpacity(0.6),
                       ),
                       hintText: 'Pesquisar por nome do item...',
-                      hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
+                      hintStyle: TextStyle(
+                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                        fontSize: 16,
+                      ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 15, 
+                        vertical: 15,
                       ),
                     ),
                   ),
@@ -354,8 +366,8 @@ class _FeedScreenState extends State<FeedScreen>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _fetchPosts,
-        backgroundColor: _focusColor,
-        foregroundColor: Colors.white, 
+        backgroundColor: theme.primaryColor,
+        foregroundColor: theme.colorScheme.onPrimary,
         child: const Icon(Icons.refresh),
         tooltip: 'Atualizar Feed',
       ),
@@ -363,12 +375,18 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Widget _buildFeedContent() {
-    if (_isLoadingPosts) return const Center(child: CircularProgressIndicator());
+    final theme = Theme.of(context);
+    
+    if (_isLoadingPosts) return Center(child: CircularProgressIndicator(color: theme.primaryColor));
     if (_postsErrorMessage.isNotEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(_postsErrorMessage, textAlign: TextAlign.center),
+          child: Text(
+            _postsErrorMessage, 
+            textAlign: TextAlign.center,
+            style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+          ),
         ),
       );
     }
@@ -376,24 +394,44 @@ class _FeedScreenState extends State<FeedScreen>
     if (_filteredPosts.isEmpty) {
       if (_searchController.text.isNotEmpty) {
         return Center(
-          child: Text('Nenhum post encontrado com "${_searchController.text}".', style: TextStyle(color: Colors.grey[600])),
+          child: Text(
+            'Nenhum post encontrado com "${_searchController.text}".', 
+            style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+          ),
         );
       }
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.find_in_page_outlined, size: 60, color: Colors.grey[400]),
+            Icon(
+              Icons.find_in_page_outlined, 
+              size: 60, 
+              color: theme.iconTheme.color?.withOpacity(0.5),
+            ),
             const SizedBox(height: 16),
-            const Text('Nenhum post encontrado.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            Text(
+              'Nenhum post encontrado.', 
+              style: TextStyle(
+                fontSize: 16, 
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              ),
+            ),
             const SizedBox(height: 8),
-            TextButton(onPressed: _fetchPosts, child: Text('Tentar novamente', style: TextStyle(color: _focusColor)))
+            TextButton(
+              onPressed: _fetchPosts, 
+              child: Text(
+                'Tentar novamente', 
+                style: TextStyle(color: theme.primaryColor),
+              ),
+            )
           ],
         )
       );
     }
     return RefreshIndicator(
       onRefresh: _fetchPosts,
+      color: theme.primaryColor,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         itemCount: _filteredPosts.length,
@@ -417,14 +455,26 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Widget _buildNotificationsContent() {
+    final theme = Theme.of(context);
+    
     if (_notifications.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.notifications_none_outlined, size: 60, color: Colors.grey[400]),
+            Icon(
+              Icons.notifications_none_outlined, 
+              size: 60, 
+              color: theme.iconTheme.color?.withOpacity(0.5),
+            ),
             const SizedBox(height: 16),
-            const Text('Nenhuma notificação no momento.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            Text(
+              'Nenhuma notificação no momento.', 
+              style: TextStyle(
+                fontSize: 16, 
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+              ),
+            ),
           ],
         )
       );
@@ -440,6 +490,7 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> postData) {
+    final theme = Theme.of(context);
     final String imageUrl = postData['fotoUrl'] ?? '';
     final String itemName = postData['nomeItem'] ?? 'Item não identificado';
     final String situacao = postData['situacao'] ?? '';
@@ -448,8 +499,11 @@ class _FeedScreenState extends State<FeedScreen>
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: theme.cardTheme.elevation ?? 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      color: theme.cardColor,
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
         leading: SizedBox(
@@ -462,38 +516,58 @@ class _FeedScreenState extends State<FeedScreen>
                     imageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                      color: theme.hoverColor,
+                      child: Icon(
+                        Icons.image_not_supported, 
+                        color: theme.iconTheme.color?.withOpacity(0.5),
+                      ),
                     ),
                   )
                 : Container(
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.photo_library_outlined, color: Colors.grey),
+                    color: theme.hoverColor,
+                    child: Icon(
+                      Icons.photo_library_outlined, 
+                      color: theme.iconTheme.color?.withOpacity(0.5),
+                    ),
                   ),
           ),
         ),
         title: RichText(
           text: TextSpan(
-            style: DefaultTextStyle.of(context).style.copyWith(fontSize: 15, color: Colors.black87),
+            style: theme.textTheme.bodyMedium,
             children: <TextSpan>[
-              TextSpan(text: autorNome, style: const TextStyle(fontWeight: FontWeight.bold)),
+              TextSpan(
+                text: autorNome, 
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               const TextSpan(text: ' postou um item '),
               TextSpan(
                 text: situacao == 'achado' ? 'achado' : 'perdido',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: situacao == 'achado' ? Colors.green.shade700 : Colors.orange.shade800,
+                  color: situacao == 'achado' 
+                      ? Colors.green.shade700 
+                      : Colors.orange.shade800,
                 ),
               ),
               const TextSpan(text: ': "'),
-              TextSpan(text: itemName, style: const TextStyle(fontWeight: FontWeight.bold)),
+              TextSpan(
+                text: itemName, 
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               const TextSpan(text: '"'),
             ],
           ),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4.0),
-          child: Text('Em: $dataPostagem', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          child: Text(
+            'Em: $dataPostagem', 
+            style: TextStyle(
+              fontSize: 12, 
+              color: theme.textTheme.bodySmall?.color,
+            ),
+          ),
         ),
         onTap: () {
           Navigator.push(
@@ -508,6 +582,7 @@ class _FeedScreenState extends State<FeedScreen>
   }
 
   Widget _buildPostCard({required dynamic post}) {
+    final theme = Theme.of(context);
     final bool isFound = post['situacao'] == 'achado';
     final String imageUrl = post['fotoUrl'] ?? '';
     final String itemName = post['nomeItem'] ?? 'Item não identificado';
@@ -517,14 +592,14 @@ class _FeedScreenState extends State<FeedScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, 
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.15), 
+            color: theme.shadowColor.withOpacity(0.15),
             spreadRadius: 1,
-            blurRadius: 6, 
-            offset: const Offset(0, 3), 
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -536,15 +611,27 @@ class _FeedScreenState extends State<FeedScreen>
             child: AspectRatio(
               aspectRatio: 4 / 3,
               child: Container(
-                color: Colors.grey[200],
+                color: theme.hoverColor,
                 child: imageUrl.isNotEmpty
                     ? Image.network(
                         imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            const Center(child: Icon(Icons.broken_image_outlined, size: 50, color: Colors.grey)),
+                            Center(
+                              child: Icon(
+                                Icons.broken_image_outlined, 
+                                size: 50, 
+                                color: theme.iconTheme.color?.withOpacity(0.5),
+                              ),
+                            ),
                       )
-                    : Center(child: Icon(Icons.photo_library_outlined, size: 50, color: Colors.grey[400])),
+                    : Center(
+                        child: Icon(
+                          Icons.photo_library_outlined, 
+                          size: 50, 
+                          color: theme.iconTheme.color?.withOpacity(0.5),
+                        ),
+                      ),
               ),
             ),
           ),
@@ -560,10 +647,10 @@ class _FeedScreenState extends State<FeedScreen>
                     Expanded(
                       child: Text(
                         itemName,
-                        style: const TextStyle(
-                          fontSize: 18, // Ajustado para consistência
+                        style: TextStyle(
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1D8BC9),
+                          color: theme.primaryColor,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -573,12 +660,16 @@ class _FeedScreenState extends State<FeedScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isFound ? const Color(0xFF15AF12) : const Color(0xFFFF9900),
+                        color: isFound ? Colors.green.shade600 : Colors.orange.shade600,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         isFound ? 'Achado' : 'Perdido',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white, 
+                          fontWeight: FontWeight.bold, 
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -586,7 +677,11 @@ class _FeedScreenState extends State<FeedScreen>
                 const SizedBox(height: 8),
                 Text(
                   description,
-                  style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
+                  style: TextStyle(
+                    fontSize: 14, 
+                    color: theme.textTheme.bodyMedium?.color,
+                    height: 1.4,
+                  ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -596,11 +691,17 @@ class _FeedScreenState extends State<FeedScreen>
                   children: [
                     Text(
                       'Por: $authorName',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(
+                        color: theme.textTheme.bodySmall?.color,
+                        fontSize: 12,
+                      ),
                     ),
                     Text(
                       postDate,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      style: TextStyle(
+                        color: theme.textTheme.bodySmall?.color,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),

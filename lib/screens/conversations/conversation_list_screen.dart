@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/screens/chat/chat_screen.dart';
 import 'package:intl/intl.dart';
-import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
+import 'package:find_it/widgets/custom_bottom_navbar.dart';
 
 class ConversationListScreen extends StatefulWidget {
   const ConversationListScreen({Key? key}) : super(key: key);
@@ -19,8 +19,7 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
   String? _errorMessage;
   String? _currentUserId;
   
-  final int _bottomNavCurrentIndex = 0; 
-  final Color _pageBackgroundColor = const Color(0xffEFEFEF);
+  final int _bottomNavCurrentIndex = 0;
 
   @override
   void initState() {
@@ -117,7 +116,6 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
     final currentRouteName = ModalRoute.of(context)?.settings.name;
     if (index == 0) { 
       if (currentRouteName != '/feed') {
-
         Navigator.popUntil(context, ModalRoute.withName('/feed'));
       }
     } else if (index == 1) { 
@@ -131,17 +129,25 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: _pageBackgroundColor, 
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Minhas Conversas', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+        title: Text(
+          'Minhas Conversas',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: theme.textTheme.titleLarge?.color,
+          ),
+        ),
         centerTitle: true,
-        backgroundColor: _pageBackgroundColor,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87), 
+        iconTheme: theme.appBarTheme.iconTheme,
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
+          ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
           : _errorMessage != null
               ? Center(
                   child: Padding(
@@ -149,18 +155,29 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.error_outline, color: Colors.red[300], size: 50),
+                        Icon(
+                          Icons.error_outline, 
+                          color: theme.colorScheme.error, 
+                          size: 50,
+                        ),
                         const SizedBox(height: 10),
-                        Text(_errorMessage!, textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.red[700])),
+                        Text(
+                          _errorMessage!, 
+                          textAlign: TextAlign.center, 
+                          style: TextStyle(
+                            fontSize: 16, 
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
                         const SizedBox(height: 20),
                         ElevatedButton.icon(
                           icon: const Icon(Icons.refresh),
                           label: const Text('Tentar Novamente'),
                           onPressed: _fetchConversations,
-                           style: ElevatedButton.styleFrom(
-                             backgroundColor: Theme.of(context).primaryColor,
-                             foregroundColor: Colors.white
-                           ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.primaryColor,
+                            foregroundColor: theme.colorScheme.onPrimary,
+                          ),
                         )
                       ],
                     ),
@@ -171,21 +188,44 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.chat_bubble_outline_rounded, size: 70, color: Colors.grey[400]),
+                          Icon(
+                            Icons.chat_bubble_outline_rounded, 
+                            size: 70, 
+                            color: theme.iconTheme.color?.withOpacity(0.5),
+                          ),
                           const SizedBox(height: 20),
-                          Text('Nenhuma conversa encontrada.', style: TextStyle(fontSize: 17, color: Colors.grey[600])),
+                          Text(
+                            'Nenhuma conversa encontrada.', 
+                            style: TextStyle(
+                              fontSize: 17, 
+                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                            ),
+                          ),
                           const SizedBox(height: 8),
-                           Text('Inicie uma conversa visitando o perfil de um usuário.', style: TextStyle(fontSize: 14, color: Colors.grey[500]), textAlign: TextAlign.center,),
+                          Text(
+                            'Inicie uma conversa visitando o perfil de um usuário.', 
+                            style: TextStyle(
+                              fontSize: 14, 
+                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                            ), 
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                       )
                     )
                   : RefreshIndicator(
                       onRefresh: _fetchConversations,
-                      color: Theme.of(context).primaryColor,
+                      color: theme.primaryColor,
                       child: ListView.separated(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         itemCount: _conversations.length,
-                        separatorBuilder: (context, index) => const Divider(height: 0, indent: 86, endIndent: 16, thickness: 0.5),
+                        separatorBuilder: (context, index) => Divider(
+                          height: 0, 
+                          indent: 86, 
+                          endIndent: 16, 
+                          thickness: 0.5,
+                          color: theme.dividerColor,
+                        ),
                         itemBuilder: (context, index) {
                           final conversation = _conversations[index];
                           final List<dynamic> participants = conversation['participants'] ?? [];
@@ -213,8 +253,8 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                             }
                           }
 
-                          return Material( 
-                            color: _pageBackgroundColor,
+                          return Material(
+                            color: theme.scaffoldBackgroundColor,
                             child: InkWell(
                               onTap: () {
                                 if (otherParticipantId.isNotEmpty) { 
@@ -231,7 +271,10 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                                   ).then((_) => _fetchConversations()); 
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Não foi possível abrir a conversa. Tente novamente.'), backgroundColor: Colors.orange)
+                                    SnackBar(
+                                      content: const Text('Não foi possível abrir a conversa. Tente novamente.'),
+                                      backgroundColor: theme.colorScheme.errorContainer,
+                                    )
                                   );
                                 }
                               },
@@ -241,14 +284,18 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                                   children: [
                                     CircleAvatar(
                                       radius: 28,
-                                      backgroundColor: Colors.grey[300],
+                                      backgroundColor: theme.cardColor.withAlpha((0.5 * 255).toInt()),
                                       backgroundImage: otherParticipantProfilePic != null && otherParticipantProfilePic.isNotEmpty
                                           ? NetworkImage(otherParticipantProfilePic)
                                           : null,
                                       child: (otherParticipantProfilePic == null || otherParticipantProfilePic.isEmpty)
                                           ? Text(
                                               otherParticipantName.isNotEmpty ? otherParticipantName[0].toUpperCase() : '?',
-                                              style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold)
+                                              style: TextStyle(
+                                                fontSize: 22, 
+                                                color: theme.colorScheme.onSurface, 
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             )
                                           : null,
                                     ),
@@ -259,7 +306,11 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                                         children: [
                                           Text(
                                             otherParticipantName, 
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold, 
+                                              fontSize: 16, 
+                                              color: theme.textTheme.titleMedium?.color,
+                                            ),
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
@@ -267,16 +318,22 @@ class _ConversationListScreenState extends State<ConversationListScreen> {
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                              color: Colors.grey[600], 
+                                              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
                                               fontSize: 14,
-                                              fontWeight: isLastMessageFromMe ? FontWeight.normal : FontWeight.w500, // Destaca se não for minha
+                                              fontWeight: isLastMessageFromMe ? FontWeight.normal : FontWeight.w500,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(lastMessageTime, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                                    Text(
+                                      lastMessageTime, 
+                                      style: TextStyle(
+                                        fontSize: 12, 
+                                        color: theme.textTheme.bodySmall?.color,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),

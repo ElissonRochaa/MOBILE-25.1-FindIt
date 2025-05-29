@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:find_it/service/auth_service.dart';
 import 'package:mime/mime.dart';
+import 'package:find_it/service/theme_service.dart';
 
 class EditarPerfil extends StatefulWidget {
   const EditarPerfil({Key? key}) : super(key: key);
@@ -35,11 +36,6 @@ class _EditarPerfilState extends State<EditarPerfil> {
   File? _imageFile;
   String _profilePictureUrl = '';
   String _userEmail = 'Carregando...';
-
-  final Color _focusColor = const Color(0xFF1D8BC9);
-  final Color _gradientStartColor = const Color(0xFF1D8BC9);
-  final Color _gradientEndColor = const Color(0xFF01121B);
-  final Color _pageBackgroundColor = const Color(0xffEFEFEF); // Cor de fundo padrão
 
   @override
   void initState() {
@@ -112,14 +108,20 @@ class _EditarPerfilState extends State<EditarPerfil> {
       }
       if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perfil atualizado com sucesso!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: const Text('Perfil atualizado com sucesso!'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
         );
         Navigator.pop(context, true); 
       }
     } catch (e) {
        if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao salvar: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Erro ao salvar: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
        }
     } finally {
@@ -195,17 +197,31 @@ class _EditarPerfilState extends State<EditarPerfil> {
     required bool isFocused,
     bool readOnly = false,
   }) {
-    final Color iconColor = isFocused ? _focusColor : (readOnly ? Colors.grey.shade500 : Colors.grey[600]!);
+    final theme = Theme.of(context);
+    final Color iconColor = isFocused 
+        ? theme.primaryColor 
+        : (readOnly ? theme.disabledColor : theme.iconTheme.color ?? Colors.grey);
+    
     final Color effectiveFillColor = readOnly 
-        ? Colors.grey.shade100 
-        : (isFocused ? _focusColor.withOpacity(0.1) : Colors.transparent);
-    final Color enabledBorderColor = readOnly ? Colors.grey.shade300 : Colors.grey.shade400;
+        ? theme.cardColor.withAlpha((0.5 * 255).toInt()) 
+        : (isFocused 
+            ? theme.primaryColor.withAlpha((0.1 * 255).toInt()) 
+            : theme.cardColor.withAlpha((0.3 * 255).toInt()));
+    
+    final Color enabledBorderColor = readOnly 
+        ? theme.dividerColor.withAlpha((0.5 * 255).toInt()) 
+        : theme.dividerColor;
 
     return InputDecoration(
       filled: true,
       fillColor: effectiveFillColor,
       labelText: labelText,
-      labelStyle: TextStyle(color: readOnly ? Colors.grey.shade700 : Colors.grey[600], fontSize: 18),
+      labelStyle: TextStyle(
+        color: readOnly 
+            ? theme.textTheme.bodyMedium?.color?.withOpacity(0.5)
+            : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+        fontSize: 18,
+      ),
       prefixIcon: Padding(
         padding: const EdgeInsets.only(left: 20, right: 12),
         child: Icon(iconData, color: iconColor, size: 24),
@@ -221,15 +237,15 @@ class _EditarPerfilState extends State<EditarPerfil> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: _focusColor, width: 2.0),
+        borderSide: BorderSide(color: theme.primaryColor, width: 2.0),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
          borderRadius: BorderRadius.circular(30),
-         borderSide: const BorderSide(color: Colors.red, width: 2.0),
+         borderSide: BorderSide(color: theme.colorScheme.error, width: 2.0),
       ),
     );
   }
@@ -239,35 +255,44 @@ class _EditarPerfilState extends State<EditarPerfil> {
     required Widget child,
     bool isLoading = false,
   }) {
+    final theme = Theme.of(context);
+    final Color startColor = theme.primaryColor;
+    final Color endColor = theme.brightness == Brightness.light 
+        ? ThemeNotifier.findItPrimaryDarkBlue 
+        : theme.colorScheme.primaryContainer;
+
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.zero, 
-        backgroundColor: Colors.transparent, 
+        padding: EdgeInsets.zero,
+        backgroundColor: Colors.transparent,
         shadowColor: Colors.transparent,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30), 
+          borderRadius: BorderRadius.circular(30),
         ),
       ),
-      child: Ink( 
+      child: Ink(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [_gradientStartColor, _gradientEndColor],
-            begin: Alignment.centerLeft, 
+            colors: [startColor, endColor],
+            begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(30),
         ),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16), 
+          padding: const EdgeInsets.symmetric(vertical: 16),
           alignment: Alignment.center,
           child: isLoading
-              ? const SizedBox(
+              ? SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  child: CircularProgressIndicator(
+                    color: theme.colorScheme.onPrimary,
+                    strokeWidth: 3,
+                  ),
                 )
               : child,
         ),
@@ -277,46 +302,62 @@ class _EditarPerfilState extends State<EditarPerfil> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      // MUDANÇA: Cor de fundo do Scaffold
-      backgroundColor: _pageBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Editar Perfil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black87)),
+        title: Text(
+          'Editar Perfil',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: theme.textTheme.titleLarge?.color,
+          ),
+        ),
         centerTitle: true,
-        // MUDANÇA: Cor de fundo e elevação do AppBar
-        backgroundColor: _pageBackgroundColor, 
-        elevation: 0, // Sem sombra para integrar com o fundo
-        iconTheme: const IconThemeData(color: Colors.black87), 
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: 0,
+        iconTheme: theme.appBarTheme.iconTheme,
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: _focusColor))
+          ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
           : _errorMessage != null
               ? Center(child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Text('Erro: $_errorMessage!', textAlign: TextAlign.center, style: TextStyle(color: Colors.red[700])),
+                  child: Text(
+                    'Erro: $_errorMessage!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
                 ))
               : Form(
                 key: _formKey,
-                child: Center( 
-                  child: ConstrainedBox( 
+                child: Center(
+                  child: ConstrainedBox(
                      constraints: const BoxConstraints(maxWidth: 500),
                     child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24), 
+                        padding: const EdgeInsets.all(24),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch, 
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const SizedBox(height: 10), 
+                            const SizedBox(height: 10),
                             Center(
                               child: Stack(
                                 children: [
                                   CircleAvatar(
                                     radius: 60,
-                                    backgroundColor: Colors.grey[300],
+                                    backgroundColor: theme.hoverColor,
                                     backgroundImage: _imageFile != null
                                         ? FileImage(_imageFile!) as ImageProvider
-                                        : (_profilePictureUrl.isNotEmpty ? NetworkImage(_profilePictureUrl) : null),
+                                        : (_profilePictureUrl.isNotEmpty 
+                                            ? NetworkImage(_profilePictureUrl) 
+                                            : null),
                                     child: _imageFile == null && _profilePictureUrl.isEmpty
-                                        ? Icon(Icons.person, size: 70, color: Colors.grey[400])
+                                        ? Icon(
+                                            Icons.person,
+                                            size: 70,
+                                            color: theme.iconTheme.color?.withOpacity(0.5),
+                                          )
                                         : null,
                                   ),
                                   Positioned(
@@ -327,11 +368,18 @@ class _EditarPerfilState extends State<EditarPerfil> {
                                       width: 40,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: _focusColor,
-                                        border: Border.all(color: Colors.white, width: 2),
+                                        color: theme.primaryColor,
+                                        border: Border.all(
+                                          color: theme.cardColor,
+                                          width: 2,
+                                        ),
                                       ),
                                       child: IconButton(
-                                        icon: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                                        icon: Icon(
+                                          Icons.camera_alt,
+                                          size: 20,
+                                          color: theme.colorScheme.onPrimary,
+                                        ),
                                         onPressed: _pickImage,
                                       ),
                                     ),
@@ -345,7 +393,11 @@ class _EditarPerfilState extends State<EditarPerfil> {
                                 onPressed: _pickImage,
                                 child: Text(
                                   'Alterar foto',
-                                  style: TextStyle(color: _focusColor, fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: theme.primaryColor,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -356,9 +408,14 @@ class _EditarPerfilState extends State<EditarPerfil> {
                                 controller: _nomeController,
                                 focusNode: _nomeFocusNode,
                                 keyboardType: TextInputType.name,
-                                cursorColor: _focusColor,
-                                style: const TextStyle(fontSize: 18),
-                                validator: (value) => (value == null || value.isEmpty) ? 'Nome não pode ser vazio.' : null,
+                                cursorColor: theme.primaryColor,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: theme.textTheme.bodyMedium?.color,
+                                ),
+                                validator: (value) => (value == null || value.isEmpty) 
+                                    ? 'Nome não pode ser vazio.' 
+                                    : null,
                                 decoration: _buildStandardInputDecoration(
                                   labelText: 'Nome completo',
                                   iconData: Icons.person_outline,
@@ -369,14 +426,17 @@ class _EditarPerfilState extends State<EditarPerfil> {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 20),
                               child: TextFormField(
-                                key: ValueKey(_userEmail), 
+                                key: ValueKey(_userEmail),
                                 initialValue: _userEmail,
                                 readOnly: true,
-                                style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                ),
                                 decoration: _buildStandardInputDecoration(
                                   labelText: 'E-mail (não pode ser alterado)',
                                   iconData: Icons.email_outlined,
-                                  isFocused: false, 
+                                  isFocused: false,
                                   readOnly: true,
                                 ),
                               ),
@@ -387,9 +447,14 @@ class _EditarPerfilState extends State<EditarPerfil> {
                                 controller: _contatoController,
                                 focusNode: _contatoFocusNode,
                                 keyboardType: TextInputType.phone,
-                                cursorColor: _focusColor,
-                                style: const TextStyle(fontSize: 18),
-                                validator: (value) => (value == null || value.isEmpty) ? 'Telefone não pode ser vazio.' : null,
+                                cursorColor: theme.primaryColor,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: theme.textTheme.bodyMedium?.color,
+                                ),
+                                validator: (value) => (value == null || value.isEmpty) 
+                                    ? 'Telefone não pode ser vazio.' 
+                                    : null,
                                 decoration: _buildStandardInputDecoration(
                                   labelText: 'Telefone',
                                   iconData: Icons.phone_outlined,
@@ -403,9 +468,14 @@ class _EditarPerfilState extends State<EditarPerfil> {
                                 controller: _cursoController,
                                 focusNode: _cursoFocusNode,
                                 keyboardType: TextInputType.text,
-                                cursorColor: _focusColor,
-                                style: const TextStyle(fontSize: 18),
-                                validator: (value) => (value == null || value.isEmpty) ? 'Curso não pode ser vazio.' : null,
+                                cursorColor: theme.primaryColor,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: theme.textTheme.bodyMedium?.color,
+                                ),
+                                validator: (value) => (value == null || value.isEmpty) 
+                                    ? 'Curso não pode ser vazio.' 
+                                    : null,
                                 decoration: _buildStandardInputDecoration(
                                   labelText: 'Curso',
                                   iconData: Icons.school_outlined,
@@ -413,16 +483,20 @@ class _EditarPerfilState extends State<EditarPerfil> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20), 
+                            const SizedBox(height: 20),
                             _buildGradientButton(
                               onPressed: _isSaving ? null : _saveChanges,
                               isLoading: _isSaving,
-                              child: const Text(
+                              child: Text(
                                 'SALVAR ALTERAÇÕES',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 24), 
+                            const SizedBox(height: 24),
                           ],
                         ),
                       ),

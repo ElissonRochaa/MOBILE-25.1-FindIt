@@ -4,13 +4,14 @@ import 'dart:convert';
 import 'package:find_it/service/auth_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:intl/intl.dart';
-import 'package:find_it/widgets/custom_bottom_navbar.dart'; 
+import 'package:find_it/widgets/custom_bottom_navbar.dart';
+import 'package:find_it/service/theme_service.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String? recipientId; 
-  final String recipientName; 
-  final String? recipientProfilePic; 
-  final String? conversationId; 
+  final String? recipientId;
+  final String recipientName;
+  final String? recipientProfilePic;
+  final String? conversationId;
 
   const ChatScreen({
     Key? key,
@@ -33,17 +34,12 @@ class _ChatScreenState extends State<ChatScreen> {
   List<dynamic> _messages = [];
   bool _isLoadingConversation = true;
   bool _isSendingMessage = false;
-  String? _internalConversationId; 
+  String? _internalConversationId;
   String? _currentUserId;
 
   IO.Socket? _socket;
 
-  // Define o índice para a BottomNavBar e cores de gradiente
-  final int _bottomNavCurrentIndex = 0; 
-  final Color _gradientStartColor = const Color(0xFF1D8BC9);
-  final Color _gradientEndColor = const Color(0xFF01121B);
-  final Color _pageBackgroundColor = const Color(0xffEFEFEF);
-
+  final int _bottomNavCurrentIndex = 0;
 
   @override
   void initState() {
@@ -57,7 +53,10 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!mounted) return;
     if (_currentUserId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Usuário não autenticado."), backgroundColor: Colors.red),
+        SnackBar(
+          content: const Text("Usuário não autenticado."),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
       Navigator.pop(context);
       return;
@@ -66,39 +65,43 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_internalConversationId != null) {
       setState(() => _isLoadingConversation = true);
       await _fetchMessages();
-      _connectToSocket(); 
+      _connectToSocket();
       if (mounted) setState(() => _isLoadingConversation = false);
-    } 
-    else if (widget.recipientId != null) {
+    } else if (widget.recipientId != null) {
       await _initiateOrGetConversation();
-    } 
-    else {
+    } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Erro: Informações da conversa ausentes."), backgroundColor: Colors.red),
+          SnackBar(
+            content: const Text("Erro: Informações da conversa ausentes."),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
         Navigator.pop(context);
       }
     }
   }
 
-  void _connectToSocket() async { 
+  void _connectToSocket() async {
     if (_internalConversationId == null || _socket != null) return;
     final token = await AuthService.getToken();
     if (token == null && mounted) {
-       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Autenticação necessária para o chat."), backgroundColor: Colors.red),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Autenticação necessária para o chat."),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
       return;
     }
 
     try {
       _socket = IO.io('http://localhost:8080', <String, dynamic>{
         'transports': ['websocket'],
-        'autoConnect': false, 
+        'autoConnect': false,
         'auth': {'token': token}
       });
-      _socket!.connect(); 
+      _socket!.connect();
       _socket!.onConnect((_) {
         print('ChatScreen: Conectado ao Socket.IO Server');
         _socket!.emit('joinRoom', _internalConversationId);
@@ -115,12 +118,15 @@ class _ChatScreenState extends State<ChatScreen> {
           _scrollToBottom();
         }
       });
-      _socket!.on('auth_error', (data) { 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(data?['message'] ?? 'Erro ao entrar na sala de chat.'), backgroundColor: Colors.red),
-            );
-          }
+      _socket!.on('auth_error', (data) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data?['message'] ?? 'Erro ao entrar na sala de chat.'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
       });
       _socket!.onDisconnect((_) => print('ChatScreen: Desconectado do Socket.IO Server'));
       _socket!.onError((data) => print('ChatScreen: Socket Error: $data'));
@@ -134,14 +140,17 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _isLoadingConversation = true);
     final token = await AuthService.getToken();
     if (token == null || widget.recipientId == null) {
-      if(mounted) setState(() => _isLoadingConversation = false);
+      if (mounted) setState(() => _isLoadingConversation = false);
       return;
     }
 
     try {
       final response = await http.post(
         Uri.parse('http://localhost:8080/api/v1/conversations'),
-        headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json'
+        },
         body: jsonEncode({'recipientId': widget.recipientId}),
       );
       if (!mounted) return;
@@ -151,18 +160,24 @@ class _ChatScreenState extends State<ChatScreen> {
           _internalConversationId = conversationData['_id'];
         });
         await _fetchMessages();
-        _connectToSocket(); 
+        _connectToSocket();
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorData['message'] ?? 'Erro ao iniciar conversa.'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(errorData['message'] ?? 'Erro ao iniciar conversa.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
-      if(mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro de conexão ao iniciar conversa: $e'), backgroundColor: Colors.red),
-          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro de conexão ao iniciar conversa: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoadingConversation = false);
@@ -176,7 +191,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
+        Uri.parse(
+            'http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (!mounted) return;
@@ -187,36 +203,48 @@ class _ChatScreenState extends State<ChatScreen> {
         });
         _scrollToBottom();
       } else {
-         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-         if(mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(errorData['message'] ?? 'Erro ao buscar mensagens.'), backgroundColor: Colors.red),
-            );
-         }
+        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorData['message'] ?? 'Erro ao buscar mensagens.'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
       }
     } catch (e) {
-       if(mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Erro de conexão ao buscar mensagens: $e'), backgroundColor: Colors.red),
-            );
-         }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro de conexão ao buscar mensagens: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || _internalConversationId == null || _isSendingMessage) return;
+    if (_messageController.text.trim().isEmpty ||
+        _internalConversationId == null ||
+        _isSendingMessage) return;
     if (!mounted) return;
     setState(() => _isSendingMessage = true);
     final token = await AuthService.getToken();
     if (token == null) {
-        if(mounted) setState(() => _isSendingMessage = false);
-        return;
+      if (mounted) setState(() => _isSendingMessage = false);
+      return;
     }
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
-        headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+        Uri.parse(
+            'http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json'
+        },
         body: jsonEncode({'content': _messageController.text.trim()}),
       );
       if (!mounted) return;
@@ -225,23 +253,30 @@ class _ChatScreenState extends State<ChatScreen> {
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorData['message'] ?? 'Erro ao enviar mensagem.'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(errorData['message'] ?? 'Erro ao enviar mensagem.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } catch (e) {
-       if(mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro de conexão ao enviar mensagem: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Erro de conexão ao enviar mensagem: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
-       }
+      }
     } finally {
       if (mounted) setState(() => _isSendingMessage = false);
     }
   }
-  
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients && _scrollController.position.hasContentDimensions) {
+      if (_scrollController.hasClients &&
+          _scrollController.position.hasContentDimensions) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
@@ -266,35 +301,55 @@ class _ChatScreenState extends State<ChatScreen> {
     if (index == 0) {
       Navigator.popUntil(context, ModalRoute.withName('/feed'));
     } else if (index == 1) {
-      if (currentRouteName != '/create-post') Navigator.pushNamed(context, '/create-post');
+      if (currentRouteName != '/create-post') {
+        Navigator.pushNamed(context, '/create-post');
+      }
     } else if (index == 2) {
-      if (currentRouteName != '/profile') Navigator.pushNamed(context, '/profile');
+      if (currentRouteName != '/profile') {
+        Navigator.pushNamed(context, '/profile');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: _pageBackgroundColor, // COR DE FUNDO DA PÁGINA
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         leadingWidth: 30,
-        backgroundColor: _pageBackgroundColor, // COR DE FUNDO DO APPBAR
-        elevation: 0, // AppBar mais integrado
-        iconTheme: const IconThemeData(color: Colors.black87), // Ícone de voltar
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: 0,
+        iconTheme: theme.appBarTheme.iconTheme,
         title: Row(
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: Colors.grey[300],
-              backgroundImage: widget.recipientProfilePic != null && widget.recipientProfilePic!.isNotEmpty
+              // ignore: deprecated_member_use
+              backgroundColor: theme.cardColor.withOpacity(0.5),
+              backgroundImage: widget.recipientProfilePic != null &&
+                      widget.recipientProfilePic!.isNotEmpty
                   ? NetworkImage(widget.recipientProfilePic!)
                   : null,
-              child: widget.recipientProfilePic == null || widget.recipientProfilePic!.isEmpty
-                  ? Icon(Icons.person, size: 22, color: Colors.grey[700])
+              child: widget.recipientProfilePic == null ||
+                      widget.recipientProfilePic!.isEmpty
+                  ? Icon(
+                      Icons.person,
+                      size: 22,
+                      color: theme.iconTheme.color,
+                    )
                   : null,
             ),
             const SizedBox(width: 12),
-            Text(widget.recipientName, style: const TextStyle(fontSize: 18, color: Colors.black87, fontWeight: FontWeight.w600)),
+            Text(
+              widget.recipientName,
+              style: TextStyle(
+                fontSize: 18,
+                color: theme.textTheme.titleLarge?.color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -302,16 +357,25 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: _isLoadingConversation
-                ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
+                ? Center(
+                    child: CircularProgressIndicator(color: theme.primaryColor))
                 : _messages.isEmpty
-                    ? const Center(child: Text('Nenhuma mensagem ainda. Envie uma!', style: TextStyle(color: Colors.grey)))
+                    ? Center(
+                        child: Text(
+                          'Nenhuma mensagem ainda. Envie uma!',
+                          style: TextStyle(
+                            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                          ),
+                        ),
+                      )
                     : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.all(16.0),
                         itemCount: _messages.length,
                         itemBuilder: (context, index) {
                           final message = _messages[index];
-                          final bool isMe = message['sender']?['_id'] == _currentUserId;
+                          final bool isMe =
+                              message['sender']?['_id'] == _currentUserId;
                           return _buildMessageBubble(message, isMe);
                         },
                       ),
@@ -319,7 +383,6 @@ class _ChatScreenState extends State<ChatScreen> {
           _buildMessageInputField(),
         ],
       ),
-      // ADICIONADO: CustomBottomNavBar
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _bottomNavCurrentIndex,
         onTap: _onBottomNavTapped,
@@ -327,24 +390,23 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // WIDGET DO BALÃO DE MENSAGEM ATUALIZADO COM GRADIENTE
   Widget _buildMessageBubble(Map<String, dynamic> message, bool isMe) {
+    final theme = Theme.of(context);
     final alignment = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    // A cor do balão do destinatário permanece cinza
-    final Color recipientBubbleColor = Colors.grey[200]!; 
-    final Color recipientTextColor = Colors.black87;
-    final Color myTextColor = Colors.white;
+    final Color recipientBubbleColor = theme.cardColor;
+    final Color recipientTextColor = theme.textTheme.bodyMedium?.color ?? Colors.black87;
+    final Color myTextColor = theme.colorScheme.onPrimary;
 
     final timeAlignment = isMe ? TextAlign.right : TextAlign.left;
     final borderRadius = isMe
         ? const BorderRadius.only(
             topLeft: Radius.circular(18),
             bottomLeft: Radius.circular(18),
-            bottomRight: Radius.circular(4), // Canto menos arredondado para indicar a "ponta"
-            topRight: Radius.circular(18), 
+            bottomRight: Radius.circular(4),
+            topRight: Radius.circular(18),
           )
         : const BorderRadius.only(
-            topLeft: Radius.circular(4), // Canto menos arredondado
+            topLeft: Radius.circular(4),
             topRight: Radius.circular(18),
             bottomLeft: Radius.circular(18),
             bottomRight: Radius.circular(18),
@@ -356,46 +418,61 @@ class _ChatScreenState extends State<ChatScreen> {
         crossAxisAlignment: alignment,
         children: [
           Container(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+            constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.75),
             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-            decoration: isMe 
-              ? BoxDecoration( // Aplica gradiente se a mensagem for minha
-                  gradient: LinearGradient(
-                    colors: [_gradientStartColor, _gradientEndColor],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: borderRadius,
-                   boxShadow: [
+            decoration: isMe
+                ? BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.primaryColor,
+                        theme.brightness == Brightness.light
+                            ? ThemeNotifier.findItPrimaryDarkBlue
+                            : theme.colorScheme.primaryContainer,
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: borderRadius,
+                    boxShadow: [
                       BoxShadow(
-                        color: _gradientStartColor.withOpacity(0.3),
+                        color: theme.primaryColor.withOpacity(0.3),
                         blurRadius: 5,
                         offset: const Offset(0, 2),
                       )
-                    ]
-                )
-              : BoxDecoration( // Cor sólida se a mensagem for do destinatário
-                  color: recipientBubbleColor,
-                  borderRadius: borderRadius,
-                   boxShadow: [
+                    ],
+                  )
+                : BoxDecoration(
+                    color: recipientBubbleColor,
+                    borderRadius: borderRadius,
+                    boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.08),
                         blurRadius: 4,
                         offset: const Offset(0, 1),
                       )
-                    ]
-                ),
+                    ],
+                  ),
             child: Text(
               message['content'] ?? '',
-              style: TextStyle(color: isMe ? myTextColor : recipientTextColor, fontSize: 15.5, height: 1.3),
+              style: TextStyle(
+                color: isMe ? myTextColor : recipientTextColor,
+                fontSize: 15.5,
+                height: 1.3,
+              ),
             ),
           ),
-           Padding(
+          Padding(
             padding: const EdgeInsets.only(top: 4.0, left: 10.0, right: 10.0),
             child: Text(
-              DateFormat('HH:mm').format(DateTime.parse(message['createdAt'] ?? DateTime.now().toIso8601String()).toLocal()),
+              DateFormat('HH:mm').format(DateTime.parse(
+                      message['createdAt'] ?? DateTime.now().toIso8601String())
+                  .toLocal()),
               textAlign: timeAlignment,
-              style: TextStyle(color: Colors.grey[500], fontSize: 11),
+              style: TextStyle(
+                color: theme.textTheme.bodySmall?.color,
+                fontSize: 11,
+              ),
             ),
           )
         ],
@@ -404,62 +481,86 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageInputField() {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
       decoration: BoxDecoration(
-        color: _pageBackgroundColor, // Fundo igual ao restante da tela
-        border: Border(top: BorderSide(color: Colors.grey[300]!, width: 0.5)),
+        color: theme.scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end, // Alinha itens ao final se o textfield crescer
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4), // Padding interno do container do textfield
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                color: Colors.white, 
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(24),
-                 boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 1,
-                      blurRadius: 3,
-                    )
-                  ]
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.shadowColor.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                  )
+                ],
               ),
               child: TextField(
                 controller: _messageController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Digite uma mensagem...',
+                  hintStyle: TextStyle(
+                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                  ),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0)
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 ),
                 textCapitalization: TextCapitalization.sentences,
                 minLines: 1,
-                maxLines: 4, // Permite que o campo cresça um pouco
-                // onSubmitted: (_) => _sendMessage(), // Opcional: enviar com enter do teclado
+                maxLines: 4,
+                style: TextStyle(
+                  color: theme.textTheme.bodyMedium?.color,
+                ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          Material( // Para o efeito de splash no IconButton
-             color: Colors.transparent,
-            child: InkWell( // Para uma área de toque maior e feedback visual
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
               borderRadius: BorderRadius.circular(24),
               onTap: _isSendingMessage ? null : _sendMessage,
               child: Container(
-                padding: const EdgeInsets.all(12), // Aumenta a área de toque
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle, 
-                  gradient: LinearGradient( // Gradiente no botão de enviar
-                     colors: [_gradientStartColor, _gradientEndColor.withOpacity(0.8)],
-                     begin: Alignment.topLeft,
-                     end: Alignment.bottomRight,
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.primaryColor,
+                      theme.brightness == Brightness.light
+                          ? ThemeNotifier.findItPrimaryDarkBlue
+                          : theme.colorScheme.primaryContainer,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
-                child: _isSendingMessage 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)) 
-                    : const Icon(Icons.send, color: Colors.white, size: 22),
+                child: _isSendingMessage
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      )
+                    : Icon(
+                        Icons.send,
+                        color: theme.colorScheme.onPrimary,
+                        size: 22,
+                      ),
               ),
             ),
           ),
