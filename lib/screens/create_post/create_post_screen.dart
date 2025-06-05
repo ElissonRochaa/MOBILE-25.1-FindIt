@@ -9,6 +9,7 @@ import 'package:http_parser/http_parser.dart';
 import 'dart:convert';
 import 'package:find_it/widgets/custom_bottom_navbar.dart';
 import 'package:find_it/service/theme_service.dart';
+import 'package:find_it/widgets/custom_post_form_field.dart'; // Import do widget customizado
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({Key? key}) : super(key: key);
@@ -34,7 +35,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final FocusNode _descricaoFocusNode = FocusNode();
   final FocusNode _dataFocusNode = FocusNode();
   final FocusNode _localFocusNode = FocusNode();
-  final FocusNode _statusFocusNode = FocusNode(); 
+  final FocusNode _statusFocusNode = FocusNode();
 
   bool _isNomeFocused = false;
   bool _isDescricaoFocused = false;
@@ -77,48 +78,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-  InputDecoration _buildStandardInputDecoration({
-    required String labelText,
-    required IconData iconData,
-    required bool isFocused,
-  }) {
-    final theme = Theme.of(context);
-    final Color iconColor = isFocused ? theme.primaryColor : theme.iconTheme.color ?? Colors.grey;
-    final Color focusedInputFillColor = theme.primaryColor.withOpacity(0.1);
-
-    return InputDecoration(
-      filled: true,
-      fillColor: isFocused ? focusedInputFillColor : theme.cardTheme.color?.withOpacity(0.3) ?? Colors.grey[200],
-      labelText: labelText,
-      labelStyle: TextStyle(color: theme.hintColor, fontSize: 18),
-      prefixIcon: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 12),
-        child: Icon(iconData, color: iconColor, size: 24),
-      ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 25),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: theme.dividerColor, width: 1),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: theme.dividerColor, width: 1),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: theme.primaryColor, width: 2.0),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide(color: theme.colorScheme.error, width: 2.0),
-      ),
-    );
-  }
-
   Widget _buildGradientButton({
     required VoidCallback? onPressed,
     required Widget child,
@@ -126,8 +85,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }) {
     final theme = Theme.of(context);
     final Color startColor = theme.primaryColor;
-    final Color endColor = theme.brightness == Brightness.light 
-        ? ThemeNotifier.findItPrimaryDarkBlue 
+    final Color endColor = theme.brightness == Brightness.light
+        ? ThemeNotifier.findItPrimaryDarkBlue
         : theme.colorScheme.primaryContainer;
 
     return ElevatedButton(
@@ -203,7 +162,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   children: [
                     Center(
                       child: FractionallySizedBox(
-                        widthFactor: 0.9, 
+                        widthFactor: 0.9,
                         child: GestureDetector(
                           onTap: _adicionarFoto,
                           child: Container(
@@ -248,93 +207,50 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: TextFormField(
-                        controller: _nomeController,
-                        focusNode: _nomeFocusNode,
-                        validator: (value) =>
-                            (value == null || value.isEmpty)
-                                ? 'Nome do item é obrigatório.'
-                                : null,
-                        decoration: _buildStandardInputDecoration(
-                          labelText: 'Nome do item*',
-                          iconData: Icons.label_outline,
-                          isFocused: _isNomeFocused,
-                        ),
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
-                        cursorColor: theme.primaryColor,
-                      ),
+                    CustomPostFormField(
+                      controller: _nomeController,
+                      focusNode: _nomeFocusNode,
+                      labelText: 'Nome do item*',
+                      iconData: Icons.label_outline,
+                      isFocused: _isNomeFocused,
+                      validator: (value) =>
+                          (value == null || value.isEmpty)
+                              ? 'Nome do item é obrigatório.' : null,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: TextFormField(
-                        controller: _descricaoController,
-                        focusNode: _descricaoFocusNode,
-                        maxLines: 4,
-                        validator: (value) =>
-                            (value == null || value.isEmpty)
-                                ? 'Descrição é obrigatória.'
-                                : null,
-                        decoration: _buildStandardInputDecoration(
-                          labelText: 'Descrição detalhada*',
-                          iconData: Icons.description_outlined,
-                          isFocused: _isDescricaoFocused,
-                        ),
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
-                        cursorColor: theme.primaryColor,
-                      ),
+                    CustomPostFormField(
+                      controller: _descricaoController,
+                      focusNode: _descricaoFocusNode,
+                      labelText: 'Descrição detalhada*',
+                      iconData: Icons.description_outlined,
+                      isFocused: _isDescricaoFocused,
+                      validator: (value) =>
+                          (value == null || value.isEmpty)
+                              ? 'Descrição é obrigatória.' : null,
+                      maxLines: 4,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: TextFormField(
-                        controller: _localController,
-                        focusNode: _localFocusNode,
-                        validator: (value) =>
-                            (value == null || value.isEmpty)
-                                ? 'Local é obrigatório.'
-                                : null,
-                        decoration: _buildStandardInputDecoration(
-                          labelText: 'Local onde foi encontrado/perdido*',
-                          iconData: Icons.location_on_outlined,
-                          isFocused: _isLocalFocused,
-                        ),
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
-                        cursorColor: theme.primaryColor,
-                      ),
+                    CustomPostFormField(
+                      controller: _localController,
+                      focusNode: _localFocusNode,
+                      labelText: 'Local onde foi encontrado/perdido*',
+                      iconData: Icons.location_on_outlined,
+                      isFocused: _isLocalFocused,
+                      validator: (value) =>
+                          (value == null || value.isEmpty)
+                              ? 'Local é obrigatório.' : null,
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: GestureDetector(
-                        onTap: () => _selectDate(context),
-                        child: AbsorbPointer(
-                          child: TextFormField(
-                            controller: _dataController,
-                            focusNode: _dataFocusNode,
-                            validator: (value) =>
-                                (value == null || value.isEmpty)
-                                    ? 'Data é obrigatória.'
-                                    : null,
-                            decoration: _buildStandardInputDecoration(
-                              labelText: 'Data da ocorrência*',
-                              iconData: Icons.calendar_today_outlined,
-                              isFocused: _isDataFocused,
-                            ),
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: theme.textTheme.bodyMedium?.color,
-                            ),
-                            cursorColor: theme.primaryColor,
-                          ),
+                    GestureDetector(
+                      onTap: () => _selectDate(context),
+                      child: AbsorbPointer(
+                        child: CustomPostFormField(
+                          controller: _dataController,
+                          focusNode: _dataFocusNode,
+                          labelText: 'Data da ocorrência*',
+                          iconData: Icons.calendar_today_outlined,
+                          isFocused: _isDataFocused,
+                          validator: (value) =>
+                              (value == null || value.isEmpty)
+                                  ? 'Data é obrigatória.' : null,
+                          readOnly: true,
                         ),
                       ),
                     ),
