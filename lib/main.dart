@@ -1,7 +1,5 @@
-// lib/main.dart
-
-import 'dart:io'; // Necessário para verificar a plataforma
-import 'package:flutter/foundation.dart'; // Para usar kIsWeb
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:find_it/screens/splash/splash_screen.dart';
 import 'package:find_it/screens/feed/feed_screen.dart';
@@ -11,6 +9,7 @@ import 'package:find_it/screens/login/Login.dart';
 import 'package:find_it/screens/perfil/perfil.dart';
 import 'package:find_it/screens/editarPerfil/editar_perfil.dart';
 import 'package:find_it/screens/conversations/conversation_list_screen.dart';
+import 'package:find_it/screens/recovery/RecuperarSenha.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:find_it/service/theme_service.dart';
@@ -18,7 +17,6 @@ import 'package:find_it/service/theme_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Ativa window_manager apenas em plataformas desktop
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
 
@@ -67,6 +65,7 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => const Perfil(),
         '/editar-perfil': (context) => const EditarPerfil(),
         '/conversations': (context) => const ConversationListScreen(),
+        '/recuperar-senha': (context) => const RecuperarSenha(),
       },
     );
   }
