@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:find_it/service/auth_service.dart';
 import 'package:mime/mime.dart';
 import 'package:find_it/service/theme_service.dart';
+import 'package:find_it/widgets/custom_profile_form_field.dart';
 
 class EditarPerfil extends StatefulWidget {
   const EditarPerfil({Key? key}) : super(key: key);
@@ -17,7 +18,7 @@ class EditarPerfil extends StatefulWidget {
 
 class _EditarPerfilState extends State<EditarPerfil> {
   final _formKey = GlobalKey<FormState>();
-  
+
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _cursoController = TextEditingController();
   final TextEditingController _contatoController = TextEditingController();
@@ -29,7 +30,7 @@ class _EditarPerfilState extends State<EditarPerfil> {
   bool _isNomeFocused = false;
   bool _isCursoFocused = false;
   bool _isContatoFocused = false;
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
@@ -41,13 +42,14 @@ class _EditarPerfilState extends State<EditarPerfil> {
   void initState() {
     super.initState();
     _nomeFocusNode.addListener(() {
-      if(mounted) setState(() => _isNomeFocused = _nomeFocusNode.hasFocus);
+      if (mounted) setState(() => _isNomeFocused = _nomeFocusNode.hasFocus);
     });
     _cursoFocusNode.addListener(() {
-      if(mounted) setState(() => _isCursoFocused = _cursoFocusNode.hasFocus);
+      if (mounted) setState(() => _isCursoFocused = _cursoFocusNode.hasFocus);
     });
     _contatoFocusNode.addListener(() {
-      if(mounted) setState(() => _isContatoFocused = _contatoFocusNode.hasFocus);
+      if (mounted)
+        setState(() => _isContatoFocused = _contatoFocusNode.hasFocus);
     });
     _fetchCurrentUser();
   }
@@ -59,28 +61,23 @@ class _EditarPerfilState extends State<EditarPerfil> {
       final token = await AuthService.getToken();
       if (token == null) throw Exception('Usuário não autenticado');
 
-      final response = await http.get(
-        Uri.parse('http://localhost:8080/api/v1/users/profile'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
+      // Simulação de chamada de API
+      await Future.delayed(const Duration(seconds: 1));
+      // Dados mockados para demonstração sem backend real:
       if (!mounted) return;
-      if (response.statusCode == 200) {
-        final userData = jsonDecode(utf8.decode(response.bodyBytes));
-        setState(() {
-          _nomeController.text = userData['nome'] ?? '';
-          _cursoController.text = userData['curso'] ?? '';
-          _contatoController.text = userData['telefone'] ?? '';
-          _profilePictureUrl = userData['profilePicture'] ?? '';
-          _userEmail = userData['email'] ?? 'Email não encontrado';
-        });
-      } else {
-        final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-        throw Exception(errorData['message'] ?? 'Falha ao carregar dados do usuário.');
-      }
+      setState(() {
+        _nomeController.text = 'Usuário Exemplo';
+        _cursoController.text = 'Engenharia de Software';
+        _contatoController.text = '(00) 91234-5678';
+        _profilePictureUrl =
+            'https://placehold.co/120x120/E0E0E0/BDBDBD?text=Foto';
+        _userEmail = 'usuario@exemplo.com';
+      });
     } catch (e) {
-       if (!mounted) return;
-      setState(() => _errorMessage = e.toString().replaceAll('Exception: ', ''));
+      if (!mounted) return;
+      setState(
+        () => _errorMessage = e.toString().replaceAll('Exception: ', ''),
+      );
     } finally {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -88,7 +85,10 @@ class _EditarPerfilState extends State<EditarPerfil> {
   }
 
   Future<void> _pickImage() async {
-    final pickedImage = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final pickedImage = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
     if (pickedImage != null) {
       setState(() {
         _imageFile = File(pickedImage.path);
@@ -107,23 +107,25 @@ class _EditarPerfilState extends State<EditarPerfil> {
         await _updateProfilePicture();
       }
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Perfil atualizado com sucesso!'),
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
-        Navigator.pop(context, true); 
+        Navigator.pop(context, true);
       }
     } catch (e) {
-       if (mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao salvar: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text(
+              'Erro ao salvar: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
-       }
+      }
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -134,50 +136,21 @@ class _EditarPerfilState extends State<EditarPerfil> {
   Future<void> _updateProfileData() async {
     final token = await AuthService.getToken();
     if (token == null) throw Exception('Usuário não autenticado');
-    final response = await http.put(
-      Uri.parse('http://localhost:8080/api/v1/users/profile'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'nome': _nomeController.text,
-        'telefone': _contatoController.text,
-        'curso': _cursoController.text,
-      }),
-    );
-    if (response.statusCode != 200) {
-      final errorData = jsonDecode(utf8.decode(response.bodyBytes));
-      throw Exception(errorData['message'] ?? 'Falha ao atualizar dados.');
-    }
+
+    await Future.delayed(const Duration(seconds: 1));
+    debugPrint('Dados do perfil atualizados (simulado):');
+    debugPrint('Nome: ${_nomeController.text}');
+    debugPrint('Telefone: ${_contatoController.text}');
+    debugPrint('Curso: ${_cursoController.text}');
   }
 
   Future<void> _updateProfilePicture() async {
     if (_imageFile == null) return;
     final token = await AuthService.getToken();
     if (token == null) throw Exception('Usuário não autenticado');
-    
-    final request = http.MultipartRequest(
-      'PUT',
-      Uri.parse('http://localhost:8080/api/v1/users/profile/picture'),
-    );
-    request.headers['Authorization'] = 'Bearer $token';
-    
-    final mimeType = lookupMimeType(_imageFile!.path) ?? 'image/jpeg';
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'profilePicture',
-        _imageFile!.path,
-        contentType: MediaType.parse(mimeType),
-      ),
-    );
 
-    final response = await request.send();
-    if (response.statusCode != 200) {
-      final responseBody = await response.stream.bytesToString();
-      final errorData = jsonDecode(responseBody);
-      throw Exception(errorData['message'] ?? 'Falha ao atualizar foto de perfil.');
-    }
+    await Future.delayed(const Duration(seconds: 1));
+    debugPrint('Foto do perfil atualizada (simulado): ${_imageFile!.path}');
   }
 
   @override
@@ -190,36 +163,43 @@ class _EditarPerfilState extends State<EditarPerfil> {
     _contatoFocusNode.dispose();
     super.dispose();
   }
-  
+
   InputDecoration _buildStandardInputDecoration({
     required String labelText,
     required IconData iconData,
     required bool isFocused,
     bool readOnly = false,
+    required BuildContext context,
   }) {
     final theme = Theme.of(context);
-    final Color iconColor = isFocused 
-        ? theme.primaryColor 
-        : (readOnly ? theme.disabledColor : theme.iconTheme.color ?? Colors.grey);
-    
-    final Color effectiveFillColor = readOnly 
-        ? theme.cardColor.withAlpha((0.5 * 255).toInt()) 
-        : (isFocused 
-            ? theme.primaryColor.withAlpha((0.1 * 255).toInt()) 
-            : theme.cardColor.withAlpha((0.3 * 255).toInt()));
-    
-    final Color enabledBorderColor = readOnly 
-        ? theme.dividerColor.withAlpha((0.5 * 255).toInt()) 
-        : theme.dividerColor;
+    final Color iconColor =
+        isFocused
+            ? theme.primaryColor
+            : (readOnly
+                ? theme.disabledColor
+                : theme.iconTheme.color ?? Colors.grey);
+
+    final Color effectiveFillColor =
+        readOnly
+            ? theme.cardColor.withAlpha((0.5 * 255).toInt())
+            : (isFocused
+                ? theme.primaryColor.withAlpha((0.1 * 255).toInt())
+                : theme.cardColor.withAlpha((0.3 * 255).toInt()));
+
+    final Color enabledBorderColor =
+        readOnly
+            ? theme.dividerColor.withAlpha((0.5 * 255).toInt())
+            : theme.dividerColor;
 
     return InputDecoration(
       filled: true,
       fillColor: effectiveFillColor,
       labelText: labelText,
       labelStyle: TextStyle(
-        color: readOnly 
-            ? theme.textTheme.bodyMedium?.color?.withOpacity(0.5)
-            : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+        color:
+            readOnly
+                ? theme.textTheme.bodyMedium?.color?.withOpacity(0.5)
+                : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
         fontSize: 18,
       ),
       prefixIcon: Padding(
@@ -244,8 +224,8 @@ class _EditarPerfilState extends State<EditarPerfil> {
         borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
-         borderRadius: BorderRadius.circular(30),
-         borderSide: BorderSide(color: theme.colorScheme.error, width: 2.0),
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: theme.colorScheme.error, width: 2.0),
       ),
     );
   }
@@ -257,9 +237,10 @@ class _EditarPerfilState extends State<EditarPerfil> {
   }) {
     final theme = Theme.of(context);
     final Color startColor = theme.primaryColor;
-    final Color endColor = theme.brightness == Brightness.light 
-        ? ThemeNotifier.findItPrimaryDarkBlue 
-        : theme.colorScheme.primaryContainer;
+    final Color endColor =
+        theme.brightness == Brightness.light
+            ? ThemeNotifier.findItPrimaryDarkBlue
+            : theme.colorScheme.primaryContainer;
 
     return ElevatedButton(
       onPressed: onPressed,
@@ -268,9 +249,7 @@ class _EditarPerfilState extends State<EditarPerfil> {
         backgroundColor: Colors.transparent,
         shadowColor: Colors.transparent,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       ),
       child: Ink(
         decoration: BoxDecoration(
@@ -285,16 +264,17 @@ class _EditarPerfilState extends State<EditarPerfil> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16),
           alignment: Alignment.center,
-          child: isLoading
-              ? SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    color: theme.colorScheme.onPrimary,
-                    strokeWidth: 3,
-                  ),
-                )
-              : child,
+          child:
+              isLoading
+                  ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: theme.colorScheme.onPrimary,
+                      strokeWidth: 3,
+                    ),
+                  )
+                  : child,
         ),
       ),
     );
@@ -319,189 +299,159 @@ class _EditarPerfilState extends State<EditarPerfil> {
         elevation: 0,
         iconTheme: theme.appBarTheme.iconTheme,
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
-          : _errorMessage != null
-              ? Center(child: Padding(
+      body:
+          _isLoading
+              ? Center(
+                child: CircularProgressIndicator(color: theme.primaryColor),
+              )
+              : _errorMessage != null
+              ? Center(
+                child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     'Erro: $_errorMessage!',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: theme.colorScheme.error),
                   ),
-                ))
-              : Form(
-                key: _formKey,
-                child: Center(
-                  child: ConstrainedBox(
-                     constraints: const BoxConstraints(maxWidth: 500),
-                    child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const SizedBox(height: 10),
-                            Center(
-                              child: Stack(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 60,
-                                    backgroundColor: theme.hoverColor,
-                                    backgroundImage: _imageFile != null
-                                        ? FileImage(_imageFile!) as ImageProvider
-                                        : (_profilePictureUrl.isNotEmpty 
-                                            ? NetworkImage(_profilePictureUrl) 
-                                            : null),
-                                    child: _imageFile == null && _profilePictureUrl.isEmpty
-                                        ? Icon(
-                                            Icons.person,
-                                            size: 70,
-                                            color: theme.iconTheme.color?.withOpacity(0.5),
-                                          )
-                                        : null,
-                                  ),
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      height: 40,
-                                      width: 40,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: theme.primaryColor,
-                                        border: Border.all(
-                                          color: theme.cardColor,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: IconButton(
-                                        icon: Icon(
-                                          Icons.camera_alt,
-                                          size: 20,
-                                          color: theme.colorScheme.onPrimary,
-                                        ),
-                                        onPressed: _pickImage,
-                                      ),
+                ),
+              )
+              : ProfileFormLayout(
+                // Usando o novo widget de layout do formulário
+                formKey: _formKey,
+                children: [
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundColor: theme.hoverColor,
+                          backgroundImage:
+                              _imageFile != null
+                                  ? FileImage(_imageFile!) as ImageProvider
+                                  : (_profilePictureUrl.isNotEmpty
+                                      ? NetworkImage(_profilePictureUrl)
+                                      : null),
+                          child:
+                              _imageFile == null && _profilePictureUrl.isEmpty
+                                  ? Icon(
+                                    Icons.person,
+                                    size: 70,
+                                    color: theme.iconTheme.color?.withOpacity(
+                                      0.5,
                                     ),
-                                  ),
-                                ],
+                                  )
+                                  : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            height: 40,
+                            width: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: theme.primaryColor,
+                              border: Border.all(
+                                color: theme.cardColor,
+                                width: 2,
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            Center(
-                              child: TextButton(
-                                onPressed: _pickImage,
-                                child: Text(
-                                  'Alterar foto',
-                                  style: TextStyle(
-                                    color: theme.primaryColor,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.camera_alt,
+                                size: 20,
+                                color: theme.colorScheme.onPrimary,
                               ),
+                              onPressed: _pickImage,
                             ),
-                            const SizedBox(height: 32),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              child: TextFormField(
-                                controller: _nomeController,
-                                focusNode: _nomeFocusNode,
-                                keyboardType: TextInputType.name,
-                                cursorColor: theme.primaryColor,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: theme.textTheme.bodyMedium?.color,
-                                ),
-                                validator: (value) => (value == null || value.isEmpty) 
-                                    ? 'Nome não pode ser vazio.' 
-                                    : null,
-                                decoration: _buildStandardInputDecoration(
-                                  labelText: 'Nome completo',
-                                  iconData: Icons.person_outline,
-                                  isFocused: _isNomeFocused,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              child: TextFormField(
-                                key: ValueKey(_userEmail),
-                                initialValue: _userEmail,
-                                readOnly: true,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
-                                ),
-                                decoration: _buildStandardInputDecoration(
-                                  labelText: 'E-mail (não pode ser alterado)',
-                                  iconData: Icons.email_outlined,
-                                  isFocused: false,
-                                  readOnly: true,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              child: TextFormField(
-                                controller: _contatoController,
-                                focusNode: _contatoFocusNode,
-                                keyboardType: TextInputType.phone,
-                                cursorColor: theme.primaryColor,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: theme.textTheme.bodyMedium?.color,
-                                ),
-                                validator: (value) => (value == null || value.isEmpty) 
-                                    ? 'Telefone não pode ser vazio.' 
-                                    : null,
-                                decoration: _buildStandardInputDecoration(
-                                  labelText: 'Telefone',
-                                  iconData: Icons.phone_outlined,
-                                  isFocused: _isContatoFocused,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              child: TextFormField(
-                                controller: _cursoController,
-                                focusNode: _cursoFocusNode,
-                                keyboardType: TextInputType.text,
-                                cursorColor: theme.primaryColor,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: theme.textTheme.bodyMedium?.color,
-                                ),
-                                validator: (value) => (value == null || value.isEmpty) 
-                                    ? 'Curso não pode ser vazio.' 
-                                    : null,
-                                decoration: _buildStandardInputDecoration(
-                                  labelText: 'Curso',
-                                  iconData: Icons.school_outlined,
-                                  isFocused: _isCursoFocused,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            _buildGradientButton(
-                              onPressed: _isSaving ? null : _saveChanges,
-                              isLoading: _isSaving,
-                              child: Text(
-                                'SALVAR ALTERAÇÕES',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onPrimary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton(
+                      onPressed: _pickImage,
+                      child: Text(
+                        'Alterar foto',
+                        style: TextStyle(
+                          color: theme.primaryColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 32),
+
+                  CustomProfileFormField(
+                    controller: _nomeController,
+                    focusNode: _nomeFocusNode,
+                    labelText: 'Nome completo',
+                    iconData: Icons.person_outline,
+                    isFocused: _isNomeFocused,
+                    keyboardType: TextInputType.name,
+                    validator:
+                        (value) =>
+                            (value == null || value.isEmpty)
+                                ? 'Nome não pode ser vazio.'
+                                : null,
+                    inputDecorationBuilder: _buildStandardInputDecoration,
+                  ),
+                  CustomProfileFormField(
+                    initialValue: _userEmail,
+                    labelText: 'E-mail (não pode ser alterado)',
+                    iconData: Icons.email_outlined,
+                    isFocused: false,
+                    readOnly: true,
+                    inputDecorationBuilder: _buildStandardInputDecoration,
+                  ),
+                  CustomProfileFormField(
+                    controller: _contatoController,
+                    focusNode: _contatoFocusNode,
+                    labelText: 'Telefone',
+                    iconData: Icons.phone_outlined,
+                    isFocused: _isContatoFocused,
+                    keyboardType: TextInputType.phone,
+                    validator:
+                        (value) =>
+                            (value == null || value.isEmpty)
+                                ? 'Telefone não pode ser vazio.'
+                                : null,
+                    inputDecorationBuilder: _buildStandardInputDecoration,
+                  ),
+                  CustomProfileFormField(
+                    controller: _cursoController,
+                    focusNode: _cursoFocusNode,
+                    labelText: 'Curso',
+                    iconData: Icons.school_outlined,
+                    isFocused: _isCursoFocused,
+                    keyboardType: TextInputType.text,
+                    validator:
+                        (value) =>
+                            (value == null || value.isEmpty)
+                                ? 'Curso não pode ser vazio.'
+                                : null,
+                    inputDecorationBuilder: _buildStandardInputDecoration,
+                  ),
+
+                  const SizedBox(height: 20),
+                  _buildGradientButton(
+                    onPressed: _isSaving ? null : _saveChanges,
+                    isLoading: _isSaving,
+                    child: Text(
+                      'SALVAR ALTERAÇÕES',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
     );
   }
