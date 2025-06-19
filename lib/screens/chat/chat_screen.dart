@@ -3,9 +3,12 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:find_it/service/auth_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:intl/intl.dart';
 import 'package:find_it/widgets/custom_bottom_navbar.dart';
-import 'package:find_it/service/theme_service.dart';
+
+// IMPORTS DOS WIDGETS CUSTOMIZADOS
+import 'package:find_it/widgets/chat_app_bar_title.dart';
+import 'package:find_it/widgets/message_bubble.dart';
+import 'package:find_it/widgets/message_input_field.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? recipientId;
@@ -20,7 +23,7 @@ class ChatScreen extends StatefulWidget {
     this.recipientProfilePic,
     this.conversationId,
   })  : assert(recipientId != null || conversationId != null,
-            'Deve ser fornecido recipientId ou conversationId'),
+  'Deve ser fornecido recipientId ou conversationId'),
         super(key: key);
 
   @override
@@ -28,18 +31,16 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  // --- TODA A LÓGICA DE ESTADO E FUNÇÕES PERMANECE AQUI ---
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
   List<dynamic> _messages = [];
   bool _isLoadingConversation = true;
   bool _isSendingMessage = false;
   String? _internalConversationId;
   String? _currentUserId;
-
   IO.Socket? _socket;
-
-  final int _bottomNavCurrentIndex = 0;
+  final int _bottomNavCurrentIndex = -1;
 
   @override
   void initState() {
@@ -48,17 +49,23 @@ class _ChatScreenState extends State<ChatScreen> {
     _loadInitialData();
   }
 
+  // As funções de lógica (initState, dispose, _loadInitialData, _connectToSocket,
+  // _initiateOrGetConversation, _fetchMessages, _sendMessage, _scrollToBottom, _onBottomNavTapped)
+  // permanecem exatamente as mesmas da versão anterior. Não precisam de alteração.
+
   Future<void> _loadInitialData() async {
     _currentUserId = await AuthService.getUserId();
     if (!mounted) return;
     if (_currentUserId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Usuário não autenticado."),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      Navigator.pop(context);
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Usuário não autenticado."),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        Navigator.pop(context);
+      }
       return;
     }
 
@@ -96,7 +103,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     try {
-      _socket = IO.io('http://localhost:8080', <String, dynamic>{
+      _socket = IO.io('http://10.0.0.110:8080', <String, dynamic>{
         'transports': ['websocket'],
         'autoConnect': false,
         'auth': {'token': token}
@@ -146,7 +153,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:8080/api/v1/conversations'),
+        Uri.parse('http://10.0.0.110:8080/api/v1/conversations'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json'
@@ -192,7 +199,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
+            'http://10.0.0.110:8080/api/v1/conversations/$_internalConversationId/messages'),
         headers: {'Authorization': 'Bearer $token'},
       );
       if (!mounted) return;
@@ -240,7 +247,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-            'http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
+            'http://10.0.0.110:8080/api/v1/conversations/$_internalConversationId/messages'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json'
@@ -297,19 +304,23 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onBottomNavTapped(int index) {
-    final currentRouteName = ModalRoute.of(context)?.settings.name;
-    if (index == 0) {
-      Navigator.popUntil(context, ModalRoute.withName('/feed'));
-    } else if (index == 1) {
-      if (currentRouteName != '/create-post') {
-        Navigator.pushNamed(context, '/create-post');
-      }
-    } else if (index == 2) {
-      if (currentRouteName != '/profile') {
-        Navigator.pushNamed(context, '/profile');
-      }
+    const feedRoute = '/feed';
+    const createPostRoute = '/create-post';
+    const profileRoute = '/profile';
+
+    switch (index) {
+      case 0:
+        Navigator.pushNamedAndRemoveUntil(context, feedRoute, (route) => false);
+        break;
+      case 1:
+        Navigator.pushNamed(context, createPostRoute);
+        break;
+      case 2:
+        Navigator.pushNamedAndRemoveUntil(context, profileRoute, (route) => false);
+        break;
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -322,35 +333,9 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         iconTheme: theme.appBarTheme.iconTheme,
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              // ignore: deprecated_member_use
-              backgroundColor: theme.cardColor.withOpacity(0.5),
-              backgroundImage: widget.recipientProfilePic != null &&
-                      widget.recipientProfilePic!.isNotEmpty
-                  ? NetworkImage(widget.recipientProfilePic!)
-                  : null,
-              child: widget.recipientProfilePic == null ||
-                      widget.recipientProfilePic!.isEmpty
-                  ? Icon(
-                      Icons.person,
-                      size: 22,
-                      color: theme.iconTheme.color,
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              widget.recipientName,
-              style: TextStyle(
-                fontSize: 18,
-                color: theme.textTheme.titleLarge?.color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        title: ChatAppBarTitle(
+          recipientName: widget.recipientName,
+          recipientProfilePic: widget.recipientProfilePic,
         ),
       ),
       body: Column(
@@ -358,213 +343,39 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: _isLoadingConversation
                 ? Center(
-                    child: CircularProgressIndicator(color: theme.primaryColor))
+                child: CircularProgressIndicator(color: theme.primaryColor))
                 : _messages.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Nenhuma mensagem ainda. Envie uma!',
-                          style: TextStyle(
-                            color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16.0),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final message = _messages[index];
-                          final bool isMe =
-                              message['sender']?['_id'] == _currentUserId;
-                          return _buildMessageBubble(message, isMe);
-                        },
-                      ),
+                ? Center(
+              child: Text(
+                'Nenhuma mensagem ainda. Envie uma!',
+                // CORREÇÃO APLICADA AQUI
+                style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.textTheme.bodyMedium?.color?.withAlpha(153)
+                ),
+              ),
+            )
+                : ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16.0),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                final bool isMe =
+                    message['sender']?['_id'] == _currentUserId;
+                return MessageBubble(message: message, isMe: isMe);
+              },
+            ),
           ),
-          _buildMessageInputField(),
+          MessageInputField(
+            controller: _messageController,
+            onSendMessage: _sendMessage,
+            isSendingMessage: _isSendingMessage,
+          ),
         ],
       ),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _bottomNavCurrentIndex,
         onTap: _onBottomNavTapped,
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(Map<String, dynamic> message, bool isMe) {
-    final theme = Theme.of(context);
-    final alignment = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final Color recipientBubbleColor = theme.cardColor;
-    final Color recipientTextColor = theme.textTheme.bodyMedium?.color ?? Colors.black87;
-    final Color myTextColor = theme.colorScheme.onPrimary;
-
-    final timeAlignment = isMe ? TextAlign.right : TextAlign.left;
-    final borderRadius = isMe
-        ? const BorderRadius.only(
-            topLeft: Radius.circular(18),
-            bottomLeft: Radius.circular(18),
-            bottomRight: Radius.circular(4),
-            topRight: Radius.circular(18),
-          )
-        : const BorderRadius.only(
-            topLeft: Radius.circular(4),
-            topRight: Radius.circular(18),
-            bottomLeft: Radius.circular(18),
-            bottomRight: Radius.circular(18),
-          );
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 5.0),
-      child: Column(
-        crossAxisAlignment: alignment,
-        children: [
-          Container(
-            constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75),
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-            decoration: isMe
-                ? BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.primaryColor,
-                        theme.brightness == Brightness.light
-                            ? ThemeNotifier.findItPrimaryDarkBlue
-                            : theme.colorScheme.primaryContainer,
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: borderRadius,
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.primaryColor.withOpacity(0.3),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      )
-                    ],
-                  )
-                : BoxDecoration(
-                    color: recipientBubbleColor,
-                    borderRadius: borderRadius,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      )
-                    ],
-                  ),
-            child: Text(
-              message['content'] ?? '',
-              style: TextStyle(
-                color: isMe ? myTextColor : recipientTextColor,
-                fontSize: 15.5,
-                height: 1.3,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4.0, left: 10.0, right: 10.0),
-            child: Text(
-              DateFormat('HH:mm').format(DateTime.parse(
-                      message['createdAt'] ?? DateTime.now().toIso8601String())
-                  .toLocal()),
-              textAlign: timeAlignment,
-              style: TextStyle(
-                color: theme.textTheme.bodySmall?.color,
-                fontSize: 11,
-              ),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageInputField() {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.shadowColor.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 3,
-                  )
-                ],
-              ),
-              child: TextField(
-                controller: _messageController,
-                decoration: InputDecoration(
-                  hintText: 'Digite uma mensagem...',
-                  hintStyle: TextStyle(
-                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                ),
-                textCapitalization: TextCapitalization.sentences,
-                minLines: 1,
-                maxLines: 4,
-                style: TextStyle(
-                  color: theme.textTheme.bodyMedium?.color,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(24),
-              onTap: _isSendingMessage ? null : _sendMessage,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.primaryColor,
-                      theme.brightness == Brightness.light
-                          ? ThemeNotifier.findItPrimaryDarkBlue
-                          : theme.colorScheme.primaryContainer,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: _isSendingMessage
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: theme.colorScheme.onPrimary,
-                        ),
-                      )
-                    : Icon(
-                        Icons.send,
-                        color: theme.colorScheme.onPrimary,
-                        size: 22,
-                      ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

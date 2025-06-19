@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/screens/cadastro/Cadastro.dart';
 import 'package:find_it/screens/feed/feed_screen.dart';
+import 'package:find_it/screens/recovery/RecuperarSenha.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -365,7 +366,7 @@ class _LoginState extends State<Login> {
                           decoration: TextDecoration.underline),
                       ),
                       onTap: () {
-                        // Implementar lógica
+                        Navigator.pushNamed(context, '/recuperar-senha');
                       },
                     ),
                   ),

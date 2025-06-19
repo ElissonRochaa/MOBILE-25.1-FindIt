@@ -24,18 +24,21 @@ class _CadastroState extends State<Cadastro> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
+  final TextEditingController _confirmarSenhaController = TextEditingController(); // NOVO: Controller para confirmar senha
   final TextEditingController _telefoneController = TextEditingController();
   final TextEditingController _cursoController = TextEditingController();
 
   final FocusNode _nomeFocusNode = FocusNode();
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _senhaFocusNode = FocusNode();
+  final FocusNode _confirmarSenhaFocusNode = FocusNode(); // NOVO: FocusNode para confirmar senha
   final FocusNode _telefoneFocusNode = FocusNode();
   final FocusNode _cursoFocusNode = FocusNode();
 
   bool _isNomeFocused = false;
   bool _isEmailFocused = false;
   bool _isSenhaFocused = false;
+  bool _isConfirmSenhaFocused = false; // NOVO: Estado de foco para confirmar senha
   bool _isTelefoneFocused = false;
   bool _isCursoFocused = false;
 
@@ -43,19 +46,23 @@ class _CadastroState extends State<Cadastro> {
   void initState() {
     super.initState();
     _nomeFocusNode.addListener(
-      () => setState(() => _isNomeFocused = _nomeFocusNode.hasFocus),
+          () => setState(() => _isNomeFocused = _nomeFocusNode.hasFocus),
     );
     _emailFocusNode.addListener(
-      () => setState(() => _isEmailFocused = _emailFocusNode.hasFocus),
+          () => setState(() => _isEmailFocused = _emailFocusNode.hasFocus),
     );
     _senhaFocusNode.addListener(
-      () => setState(() => _isSenhaFocused = _senhaFocusNode.hasFocus),
+          () => setState(() => _isSenhaFocused = _senhaFocusNode.hasFocus),
+    );
+    // NOVO: Listener para o foco da confirmação de senha
+    _confirmarSenhaFocusNode.addListener(
+          () => setState(() => _isConfirmSenhaFocused = _confirmarSenhaFocusNode.hasFocus),
     );
     _telefoneFocusNode.addListener(
-      () => setState(() => _isTelefoneFocused = _telefoneFocusNode.hasFocus),
+          () => setState(() => _isTelefoneFocused = _telefoneFocusNode.hasFocus),
     );
     _cursoFocusNode.addListener(
-      () => setState(() => _isCursoFocused = _cursoFocusNode.hasFocus),
+          () => setState(() => _isCursoFocused = _cursoFocusNode.hasFocus),
     );
   }
 
@@ -87,6 +94,12 @@ class _CadastroState extends State<Cadastro> {
       _showErrorDialog('Por favor, adicione uma foto de perfil.');
       return;
     }
+    // Lógica para verificar se as senhas são iguais ANTES de enviar
+    if (_senhaController.text != _confirmarSenhaController.text) {
+      _showErrorDialog('As senhas não coincidem!');
+      return;
+    }
+
 
     if (!mounted) return;
     setState(() {
@@ -98,7 +111,7 @@ class _CadastroState extends State<Cadastro> {
 
     request.fields['nome'] = _nomeController.text;
     request.fields['email'] = _emailController.text;
-    request.fields['senha'] = _senhaController.text;
+    request.fields['senha'] = _senhaController.text; // Envia a senha principal
     request.fields['telefone'] = _telefoneController.text;
     request.fields['curso'] = _cursoController.text;
 
@@ -140,7 +153,7 @@ class _CadastroState extends State<Cadastro> {
   void _showSuccessDialog() {
     if (!mounted) return;
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -179,7 +192,7 @@ class _CadastroState extends State<Cadastro> {
   void _showErrorDialog(String message) {
     if (!mounted) return;
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -214,11 +227,13 @@ class _CadastroState extends State<Cadastro> {
     _nomeController.dispose();
     _emailController.dispose();
     _senhaController.dispose();
+    _confirmarSenhaController.dispose(); // NOVO: Dispose do controller
     _telefoneController.dispose();
     _cursoController.dispose();
     _nomeFocusNode.dispose();
     _emailFocusNode.dispose();
     _senhaFocusNode.dispose();
+    _confirmarSenhaFocusNode.dispose(); // NOVO: Dispose do FocusNode
     _telefoneFocusNode.dispose();
     _cursoFocusNode.dispose();
     super.dispose();
@@ -301,13 +316,13 @@ class _CadastroState extends State<Cadastro> {
           alignment: Alignment.center,
           child: isLoading
               ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 3,
-                  ),
-                )
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 3,
+            ),
+          )
               : child,
         ),
       ),
@@ -362,17 +377,17 @@ class _CadastroState extends State<Cadastro> {
                               ),
                               image: _imageFile != null
                                   ? DecorationImage(
-                                      fit: BoxFit.cover,
-                                      image: FileImage(_imageFile!),
-                                    )
+                                fit: BoxFit.cover,
+                                image: FileImage(_imageFile!),
+                              )
                                   : null,
                             ),
                             child: _imageFile == null
                                 ? Icon(
-                                    Icons.add_a_photo,
-                                    size: 60,
-                                    color: theme.hintColor,
-                                  )
+                              Icons.add_a_photo,
+                              size: 60,
+                              color: theme.hintColor,
+                            )
                                 : null,
                           ),
                         ),
@@ -444,6 +459,32 @@ class _CadastroState extends State<Cadastro> {
                           hintText: "Digite sua senha",
                           imagePath: "images/lock.png",
                           isFocused: _isSenhaFocused,
+                        ),
+                      ),
+                    ),
+                    // NOVO: Campo de confirmação de senha
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TextFormField(
+                        controller: _confirmarSenhaController,
+                        focusNode: _confirmarSenhaFocusNode,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, confirme sua senha';
+                          }
+                          // Validação extra para garantir que as senhas são iguais
+                          if (value != _senhaController.text) {
+                            return 'As senhas não coincidem';
+                          }
+                          return null;
+                        },
+                        obscureText: true,
+                        cursorColor: theme.primaryColor,
+                        style: TextStyle(fontSize: 18, color: textColor),
+                        decoration: _buildInputDecoration(
+                          hintText: "Confirme sua senha",
+                          imagePath: "images/lock.png", // Reutiliza o ícone de cadeado
+                          isFocused: _isConfirmSenhaFocused,
                         ),
                       ),
                     ),

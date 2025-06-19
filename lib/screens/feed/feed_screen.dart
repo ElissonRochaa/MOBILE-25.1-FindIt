@@ -7,6 +7,7 @@ import 'package:find_it/screens/conversations/conversation_list_screen.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/widgets/custom_bottom_navbar.dart';
+import 'package:find_it/widgets/feed_post_card.dart'; // Widget padronizado
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({Key? key}) : super(key: key);
@@ -36,6 +37,7 @@ class _FeedScreenState extends State<FeedScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
     _fetchPosts();
     _initSocketConnection();
 
@@ -58,12 +60,11 @@ class _FeedScreenState extends State<FeedScreen>
         if (query.isEmpty) {
           _filteredPosts = List.from(_allPosts);
         } else {
-          _filteredPosts =
-              _allPosts.where((post) {
-                final itemName =
-                    post['nomeItem']?.toString().toLowerCase() ?? '';
-                return itemName.contains(query);
-              }).toList();
+          _filteredPosts = _allPosts.where((post) {
+            final itemName =
+                post['nomeItem']?.toString().toLowerCase() ?? '';
+            return itemName.contains(query);
+          }).toList();
         }
       });
     }
@@ -71,7 +72,7 @@ class _FeedScreenState extends State<FeedScreen>
 
   void _handleTabSelection() {
     if (mounted) {
-      setState(() {}); 
+      setState(() {});
     }
     if (_tabController.index == 1) {
       if (_newNotificationCount > 0) {
@@ -168,13 +169,11 @@ class _FeedScreenState extends State<FeedScreen>
 
   @override
   void dispose() {
-    _tabController.removeListener(
-      _handleTabSelection,
-    ); 
+    _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
     _searchController.removeListener(_filterPosts);
     _searchController.dispose();
-    _searchFocusNode.dispose(); 
+    _searchFocusNode.dispose();
     _socket?.disconnect();
     _socket?.dispose();
     super.dispose();
@@ -182,7 +181,7 @@ class _FeedScreenState extends State<FeedScreen>
 
   void _onBottomNavTapped(int index) {
     if (index == _bottomNavCurrentIndex && index == 0) {
-      _fetchPosts(); 
+      _fetchPosts();
       return;
     }
 
@@ -212,7 +211,9 @@ class _FeedScreenState extends State<FeedScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color focusedSearchInputFillColor = theme.primaryColor.withOpacity(0.1);
+    final Color focusedSearchInputFillColor = theme.primaryColor.withOpacity(
+      0.1,
+    );
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -251,7 +252,9 @@ class _FeedScreenState extends State<FeedScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: theme.primaryColor,
-          unselectedLabelColor: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+          unselectedLabelColor: theme.textTheme.bodyMedium?.color?.withOpacity(
+            0.6,
+          ),
           indicatorColor: theme.primaryColor,
           indicatorWeight: 3.0,
           tabs: [
@@ -303,14 +306,16 @@ class _FeedScreenState extends State<FeedScreen>
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: _isSearchFocused 
-                        ? focusedSearchInputFillColor 
-                        : theme.cardColor,
+                    color:
+                        _isSearchFocused
+                            ? focusedSearchInputFillColor
+                            : theme.cardColor,
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
-                      color: _isSearchFocused 
-                          ? theme.primaryColor 
-                          : theme.dividerColor,
+                      color:
+                          _isSearchFocused
+                              ? theme.primaryColor
+                              : theme.dividerColor,
                       width: _isSearchFocused ? 1.5 : 1.0,
                     ),
                     boxShadow: [
@@ -319,8 +324,8 @@ class _FeedScreenState extends State<FeedScreen>
                         spreadRadius: 1,
                         blurRadius: 3,
                         offset: const Offset(0, 1),
-                      )
-                    ]
+                      ),
+                    ],
                   ),
                   child: TextField(
                     controller: _searchController,
@@ -334,13 +339,16 @@ class _FeedScreenState extends State<FeedScreen>
                       border: InputBorder.none,
                       prefixIcon: Icon(
                         Icons.search,
-                        color: _isSearchFocused 
-                            ? theme.primaryColor 
-                            : theme.iconTheme.color?.withOpacity(0.6),
+                        color:
+                            _isSearchFocused
+                                ? theme.primaryColor
+                                : theme.iconTheme.color?.withOpacity(0.6),
                       ),
                       hintText: 'Pesquisar por nome do item...',
                       hintStyle: TextStyle(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                        color: theme.textTheme.bodyMedium?.color?.withOpacity(
+                          0.5,
+                        ),
                         fontSize: 16,
                       ),
                       contentPadding: const EdgeInsets.symmetric(
@@ -376,14 +384,17 @@ class _FeedScreenState extends State<FeedScreen>
 
   Widget _buildFeedContent() {
     final theme = Theme.of(context);
-    
-    if (_isLoadingPosts) return Center(child: CircularProgressIndicator(color: theme.primaryColor));
+
+    if (_isLoadingPosts)
+      return Center(
+        child: CircularProgressIndicator(color: theme.primaryColor),
+      );
     if (_postsErrorMessage.isNotEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            _postsErrorMessage, 
+            _postsErrorMessage,
             textAlign: TextAlign.center,
             style: TextStyle(color: theme.textTheme.bodyMedium?.color),
           ),
@@ -395,8 +406,10 @@ class _FeedScreenState extends State<FeedScreen>
       if (_searchController.text.isNotEmpty) {
         return Center(
           child: Text(
-            'Nenhum post encontrado com "${_searchController.text}".', 
-            style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6)),
+            'Nenhum post encontrado com "${_searchController.text}".',
+            style: TextStyle(
+              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+            ),
           ),
         );
       }
@@ -405,28 +418,28 @@ class _FeedScreenState extends State<FeedScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.find_in_page_outlined, 
-              size: 60, 
+              Icons.find_in_page_outlined,
+              size: 60,
               color: theme.iconTheme.color?.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
             Text(
-              'Nenhum post encontrado.', 
+              'Nenhum post encontrado.',
               style: TextStyle(
-                fontSize: 16, 
+                fontSize: 16,
                 color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
               ),
             ),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: _fetchPosts, 
+              onPressed: _fetchPosts,
               child: Text(
-                'Tentar novamente', 
+                'Tentar novamente',
                 style: TextStyle(color: theme.primaryColor),
               ),
-            )
+            ),
           ],
-        )
+        ),
       );
     }
     return RefreshIndicator(
@@ -438,7 +451,8 @@ class _FeedScreenState extends State<FeedScreen>
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final post = _filteredPosts[index];
-          return GestureDetector(
+          return FeedPostCard(
+            post: post,
             onTap: () {
               Navigator.push(
                 context,
@@ -447,7 +461,6 @@ class _FeedScreenState extends State<FeedScreen>
                 ),
               );
             },
-            child: _buildPostCard(post: post),
           );
         },
       ),
@@ -456,27 +469,27 @@ class _FeedScreenState extends State<FeedScreen>
 
   Widget _buildNotificationsContent() {
     final theme = Theme.of(context);
-    
+
     if (_notifications.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.notifications_none_outlined, 
-              size: 60, 
+              Icons.notifications_none_outlined,
+              size: 60,
               color: theme.iconTheme.color?.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
             Text(
-              'Nenhuma notificação no momento.', 
+              'Nenhuma notificação no momento.',
               style: TextStyle(
-                fontSize: 16, 
+                fontSize: 16,
                 color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
               ),
             ),
           ],
-        )
+        ),
       );
     }
     return ListView.builder(
@@ -484,232 +497,18 @@ class _FeedScreenState extends State<FeedScreen>
       itemCount: _notifications.length,
       itemBuilder: (context, index) {
         final notificationData = _notifications[index];
-        return _buildNotificationCard(notificationData);
+        return FeedPostCard(
+          post: notificationData,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PostDetailScreen(post: notificationData),
+              ),
+            );
+          },
+        );
       },
-    );
-  }
-
-  Widget _buildNotificationCard(Map<String, dynamic> postData) {
-    final theme = Theme.of(context);
-    final String imageUrl = postData['fotoUrl'] ?? '';
-    final String itemName = postData['nomeItem'] ?? 'Item não identificado';
-    final String situacao = postData['situacao'] ?? '';
-    final String dataPostagem = _formatDate(postData['createdAt'] ?? '');
-    final String autorNome = postData['autor']?['nome'] ?? 'Alguém';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: theme.cardTheme.elevation ?? 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      color: theme.cardColor,
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: SizedBox(
-          width: 60,
-          height: 60,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: theme.hoverColor,
-                      child: Icon(
-                        Icons.image_not_supported, 
-                        color: theme.iconTheme.color?.withOpacity(0.5),
-                      ),
-                    ),
-                  )
-                : Container(
-                    color: theme.hoverColor,
-                    child: Icon(
-                      Icons.photo_library_outlined, 
-                      color: theme.iconTheme.color?.withOpacity(0.5),
-                    ),
-                  ),
-          ),
-        ),
-        title: RichText(
-          text: TextSpan(
-            style: theme.textTheme.bodyMedium,
-            children: <TextSpan>[
-              TextSpan(
-                text: autorNome, 
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: ' postou um item '),
-              TextSpan(
-                text: situacao == 'achado' ? 'achado' : 'perdido',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: situacao == 'achado' 
-                      ? Colors.green.shade700 
-                      : Colors.orange.shade800,
-                ),
-              ),
-              const TextSpan(text: ': "'),
-              TextSpan(
-                text: itemName, 
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: '"'),
-            ],
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Text(
-            'Em: $dataPostagem', 
-            style: TextStyle(
-              fontSize: 12, 
-              color: theme.textTheme.bodySmall?.color,
-            ),
-          ),
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PostDetailScreen(post: postData),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPostCard({required dynamic post}) {
-    final theme = Theme.of(context);
-    final bool isFound = post['situacao'] == 'achado';
-    final String imageUrl = post['fotoUrl'] ?? '';
-    final String itemName = post['nomeItem'] ?? 'Item não identificado';
-    final String description = post['descricao'] ?? 'Sem descrição';
-    final String authorName = post['autor']?['nome'] ?? 'Usuário anônimo';
-    final String postDate = _formatDate(post['dataOcorrencia'] ?? '');
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withOpacity(0.15),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: AspectRatio(
-              aspectRatio: 4 / 3,
-              child: Container(
-                color: theme.hoverColor,
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Center(
-                              child: Icon(
-                                Icons.broken_image_outlined, 
-                                size: 50, 
-                                color: theme.iconTheme.color?.withOpacity(0.5),
-                              ),
-                            ),
-                      )
-                    : Center(
-                        child: Icon(
-                          Icons.photo_library_outlined, 
-                          size: 50, 
-                          color: theme.iconTheme.color?.withOpacity(0.5),
-                        ),
-                      ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        itemName,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: theme.primaryColor,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isFound ? Colors.green.shade600 : Colors.orange.shade600,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        isFound ? 'Achado' : 'Perdido',
-                        style: const TextStyle(
-                          color: Colors.white, 
-                          fontWeight: FontWeight.bold, 
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 14, 
-                    color: theme.textTheme.bodyMedium?.color,
-                    height: 1.4,
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Por: $authorName',
-                      style: TextStyle(
-                        color: theme.textTheme.bodySmall?.color,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      postDate,
-                      style: TextStyle(
-                        color: theme.textTheme.bodySmall?.color,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
