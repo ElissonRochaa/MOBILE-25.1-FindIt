@@ -1,7 +1,6 @@
 // lib/widgets/message_input_field.dart
 
 import 'package:flutter/material.dart';
-import 'package:find_it/service/theme_service.dart';
 
 class MessageInputField extends StatelessWidget {
   final TextEditingController controller;
@@ -18,6 +17,11 @@ class MessageInputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Definindo a cor do gradiente com base no tema
+    final List<Color> gradientColors = theme.brightness == Brightness.light
+        ? [theme.primaryColor, const Color(0xff0a4a7a) /* Cor escura do azul */]
+        : [theme.colorScheme.primary, theme.colorScheme.primaryContainer];
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
@@ -36,7 +40,8 @@ class MessageInputField extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: theme.shadowColor.withAlpha(25), // Corrigido para withAlpha
+                    // CORREÇÃO: Usando withAlpha para o shadowColor
+                    color: theme.shadowColor.withAlpha(25),
                     spreadRadius: 1,
                     blurRadius: 3,
                   )
@@ -46,15 +51,20 @@ class MessageInputField extends StatelessWidget {
                 controller: controller,
                 decoration: InputDecoration(
                   hintText: 'Digite uma mensagem...',
-                  hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withAlpha(128)), // Corrigido para withAlpha
+                  // CORREÇÃO: Usando copyWith para aplicar a cor com transparência
+                  hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.textTheme.bodyMedium?.color?.withAlpha(128)
+                  ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 12.0),
+                  contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 ),
                 textCapitalization: TextCapitalization.sentences,
                 minLines: 1,
                 maxLines: 4,
-                style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                style: TextStyle(
+                  color: theme.textTheme.bodyMedium?.color,
+                ),
               ),
             ),
           ),
@@ -69,13 +79,7 @@ class MessageInputField extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [
-                      theme.primaryColor,
-                      // Assumindo que ThemeNotifier está disponível ou a cor é definida estaticamente
-                      theme.brightness == Brightness.light
-                          ? const Color(0xff0a4a7a) // Exemplo de cor escura
-                          : theme.colorScheme.primaryContainer,
-                    ],
+                    colors: gradientColors,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
