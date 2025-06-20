@@ -5,29 +5,27 @@ class CustomBottomNavBar extends StatelessWidget {
   final Function(int) onTap;
 
   const CustomBottomNavBar({
-    Key? key, // Correção: super.key para construtores de widgets
+    Key? key,
     required this.currentIndex,
     required this.onTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Pega o tema atual do BottomNavigationBar
     final BottomNavigationBarThemeData bottomNavTheme = Theme.of(context).bottomNavigationBarTheme;
 
     return BottomNavigationBar(
-      // Usa as cores e propriedades definidas no tema
       backgroundColor: bottomNavTheme.backgroundColor, 
       currentIndex: currentIndex,
       selectedItemColor: bottomNavTheme.selectedItemColor,
       unselectedItemColor: bottomNavTheme.unselectedItemColor, 
-      type: bottomNavTheme.type ?? BottomNavigationBarType.fixed, // Usa o tipo do tema ou um padrão
-      elevation: bottomNavTheme.elevation ?? 8.0, // Usa a elevação do tema ou um padrão
+      type: bottomNavTheme.type ?? BottomNavigationBarType.fixed, 
+      elevation: bottomNavTheme.elevation ?? 8.0, 
       onTap: onTap, 
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined), // Ícone de contorno para não selecionado
-          activeIcon: Icon(Icons.home), // Ícone preenchido para selecionado
+          icon: Icon(Icons.home_outlined), 
+          activeIcon: Icon(Icons.home), 
           label: 'Feed',
         ),
         BottomNavigationBarItem(
