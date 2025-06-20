@@ -1,9 +1,12 @@
+// lib/screens/login/Login.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:find_it/service/auth_service.dart';
 import 'package:find_it/screens/cadastro/Cadastro.dart';
 import 'package:find_it/screens/feed/feed_screen.dart';
+// Certifique-se de que o caminho para RecuperarSenha está correto
+import 'package:find_it/screens/recovery/recuperar_senha.dart'; // <-- Certifique-se que o nome do arquivo está correto (maiúscula/minúscula)
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -15,7 +18,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
 
@@ -95,7 +98,7 @@ class _LoginState extends State<Login> {
   void _showErrorDialog(String message) {
     if (!mounted) return;
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -166,7 +169,7 @@ class _LoginState extends State<Login> {
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
-                    color: Colors.white, 
+                    color: Colors.white,
                     strokeWidth: 3),
                 )
               : child,
@@ -233,8 +236,8 @@ class _LoginState extends State<Login> {
                       style: TextStyle(fontSize: 18, color: textColor),
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: _isEmailFocused 
-                            ? focusedInputFillColor 
+                        fillColor: _isEmailFocused
+                            ? focusedInputFillColor
                             : theme.cardColor.withOpacity(0.5),
                         contentPadding: const EdgeInsets.symmetric(
                             vertical: 18, horizontal: 25),
@@ -243,42 +246,42 @@ class _LoginState extends State<Login> {
                         prefixIcon: Padding(
                           padding: const EdgeInsets.only(left: 20, right: 12),
                           child: Image.asset(
-                            "images/emailicon.png", 
-                            width: 24, 
+                            "images/emailicon.png",
+                            width: 24,
                             height: 24,
-                            color: _isEmailFocused 
-                                ? theme.primaryColor 
+                            color: _isEmailFocused
+                                ? theme.primaryColor
                                 : theme.hintColor,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: theme.dividerColor, 
+                            color: theme.dividerColor,
                             width: 1),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: theme.primaryColor, 
+                            color: theme.primaryColor,
                             width: 2.0),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: theme.dividerColor, 
+                            color: theme.dividerColor,
                             width: 1),
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: Colors.redAccent.shade400, 
+                            color: Colors.redAccent.shade400,
                             width: 1.5),
                         ),
                         focusedErrorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: Colors.redAccent.shade400, 
+                            color: Colors.redAccent.shade400,
                             width: 2.0),
                         ),
                       ),
@@ -303,8 +306,8 @@ class _LoginState extends State<Login> {
                       cursorColor: theme.primaryColor,
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: _isSenhaFocused 
-                            ? focusedInputFillColor 
+                        fillColor: _isSenhaFocused
+                            ? focusedInputFillColor
                             : theme.cardColor.withOpacity(0.5),
                         contentPadding: const EdgeInsets.symmetric(
                             vertical: 18, horizontal: 25),
@@ -313,42 +316,42 @@ class _LoginState extends State<Login> {
                         prefixIcon: Padding(
                           padding: const EdgeInsets.only(left: 20, right: 12),
                           child: Image.asset(
-                            "images/lock.png", 
-                            width: 24, 
+                            "images/lock.png",
+                            width: 24,
                             height: 24,
-                            color: _isSenhaFocused 
-                                ? theme.primaryColor 
+                            color: _isSenhaFocused
+                                ? theme.primaryColor
                                 : theme.hintColor,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: theme.dividerColor, 
+                            color: theme.dividerColor,
                             width: 1),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: theme.primaryColor, 
+                            color: theme.primaryColor,
                             width: 2.0),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: theme.dividerColor, 
+                            color: theme.dividerColor,
                             width: 1),
                         ),
                         errorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: Colors.redAccent.shade400, 
+                            color: Colors.redAccent.shade400,
                             width: 1.5),
                         ),
                         focusedErrorBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide(
-                            color: Colors.redAccent.shade400, 
+                            color: Colors.redAccent.shade400,
                             width: 2.0),
                         ),
                       ),
@@ -361,11 +364,17 @@ class _LoginState extends State<Login> {
                         "Esqueci minha senha",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: textColor?.withOpacity(0.7), 
+                          color: textColor?.withOpacity(0.7),
                           decoration: TextDecoration.underline),
                       ),
                       onTap: () {
-                        // Implementar lógica
+                        // NAVEGAÇÃO PARA A TELA DE RECUPERAR SENHA
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RecuperarSenha(),
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -377,8 +386,8 @@ class _LoginState extends State<Login> {
                       child: const Text(
                         "Entrar",
                         style: TextStyle(
-                          color: Colors.white, 
-                          fontWeight: FontWeight.bold, 
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                           fontSize: 20),
                       ),
                     ),
@@ -389,8 +398,8 @@ class _LoginState extends State<Login> {
                       "Ainda não possui uma conta?",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: textColor, 
-                        fontWeight: FontWeight.bold, 
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
                         fontSize: 15),
                     ),
                   ),
@@ -407,8 +416,8 @@ class _LoginState extends State<Login> {
                       child: const Text(
                         "Cadastrar-se",
                         style: TextStyle(
-                          color: Colors.white, 
-                          fontWeight: FontWeight.bold, 
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                           fontSize: 20),
                       ),
                     ),

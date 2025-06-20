@@ -64,8 +64,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (_internalConversationId != null) {
       setState(() => _isLoadingConversation = true);
-      await _fetchMessages();
-      _connectToSocket();
+      await _fetchMessages(); // Busca as mensagens históricas
+      _connectToSocket(); // Conecta e configura o socket para tempo real
       if (mounted) setState(() => _isLoadingConversation = false);
     } else if (widget.recipientId != null) {
       await _initiateOrGetConversation();
@@ -101,28 +101,62 @@ class _ChatScreenState extends State<ChatScreen> {
         'autoConnect': false,
         'auth': {'token': token}
       });
+
       _socket!.connect();
+
       _socket!.onConnect((_) {
-        print('ChatScreen: Conectado ao Socket.IO Server');
+        print('ChatScreen: Conectado ao Socket.IO Server. Socket ID: ${_socket!.id}');
         _socket!.emit('joinRoom', _internalConversationId);
+        print('ChatScreen: Emitindo "joinRoom" para sala: $_internalConversationId');
       });
+
+      // ADICIONADO MAIS LOGS AQUI
       _socket!.on('newMessage', (data) {
+        print('ChatScreen: Evento "newMessage" recebido!');
+        print('ChatScreen: Dados brutos da nova mensagem: ${jsonEncode(data)}'); // Log dos dados brutos
+
         if (mounted) {
           setState(() {
             final newMessageId = data?['_id'];
-            if (newMessageId != null && !_messages.any((msg) => msg['_id'] == newMessageId)) {
+            final newCreatedAt = data?['createdAt'];
+            print('ChatScreen: newMessageId: $newMessageId, newCreatedAt: $newCreatedAt');
+
+            // Verifica se as chaves essenciais existem e não são nulas
+            if (newMessageId == null || newCreatedAt == null) {
+                print('ChatScreen: Erro: Mensagem recebida sem _id ou createdAt. Ignorando.');
+                return; // Ignora a mensagem malformada
+            }
+
+            final bool messageExists = _messages.any((msg) => msg['_id'] == newMessageId);
+            print('ChatScreen: Mensagem com ID $newMessageId já existe na lista? $messageExists');
+
+            if (!messageExists) {
               _messages.add(data);
-              _messages.sort((a, b) => DateTime.parse(a['createdAt']).compareTo(DateTime.parse(b['createdAt'])));
+              // Tenta parsear e ordenar, com tratamento de erro
+              try {
+                _messages.sort((a, b) =>
+                    DateTime.parse(a['createdAt'] ?? '').compareTo(DateTime.parse(b['createdAt'] ?? '')));
+                print('ChatScreen: Mensagens ordenadas.');
+              } catch (e) {
+                print('ChatScreen: Erro ao ordenar mensagens (problema de data?): $e');
+              }
+              print('ChatScreen: Mensagem adicionada. Total de mensagens: ${_messages.length}');
+            } else {
+              print('ChatScreen: Mensagem já existia, não adicionada para evitar duplicata.');
             }
           });
           _scrollToBottom();
+        } else {
+          print('ChatScreen: Widget não está montado ao tentar processar newMessage.');
         }
       });
+
       _socket!.on('auth_error', (data) {
+        print('ChatScreen: Erro de autenticação do Socket: $data');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(data?['message'] ?? 'Erro ao entrar na sala de chat.'),
+              content: Text(data?['message'] ?? 'Erro ao entrar na sala de chat (autenticação).'),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
@@ -131,7 +165,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _socket!.onDisconnect((_) => print('ChatScreen: Desconectado do Socket.IO Server'));
       _socket!.onError((data) => print('ChatScreen: Socket Error: $data'));
     } catch (e) {
-      print('ChatScreen: Erro ao conectar ao socket: $e');
+      print('ChatScreen: Erro catastrófico ao conectar ao socket: $e');
     }
   }
 
@@ -159,8 +193,8 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _internalConversationId = conversationData['_id'];
         });
-        await _fetchMessages();
-        _connectToSocket();
+        await _fetchMessages(); // Busca as mensagens históricas
+        _connectToSocket(); // Conecta e configura o socket
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         ScaffoldMessenger.of(context).showSnackBar(
@@ -190,6 +224,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (token == null) return;
 
     try {
+      print('ChatScreen: Buscando mensagens históricas para $_internalConversationId');
       final response = await http.get(
         Uri.parse(
             'http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
@@ -198,16 +233,20 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       if (response.statusCode == 200) {
         final String responseBody = utf8.decode(response.bodyBytes);
+        final List<dynamic> fetchedMessages = jsonDecode(responseBody);
         setState(() {
-          _messages = jsonDecode(responseBody);
+          _messages = fetchedMessages;
+          // Ordenar as mensagens históricas também
+          _messages.sort((a, b) => DateTime.parse(a['createdAt']).compareTo(DateTime.parse(b['createdAt'])));
         });
+        print('ChatScreen: Mensagens históricas carregadas: ${_messages.length}');
         _scrollToBottom();
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorData['message'] ?? 'Erro ao buscar mensagens.'),
+              content: Text(errorData['message'] ?? 'Erro ao buscar mensagens históricas.'),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
@@ -217,7 +256,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro de conexão ao buscar mensagens: $e'),
+            content: Text('Erro de conexão ao buscar mensagens históricas: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -238,6 +277,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     try {
+      print('ChatScreen: Enviando mensagem via HTTP: ${_messageController.text.trim()}');
       final response = await http.post(
         Uri.parse(
             'http://localhost:8080/api/v1/conversations/$_internalConversationId/messages'),
@@ -249,7 +289,9 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       if (!mounted) return;
       if (response.statusCode == 201) {
+        print('ChatScreen: Mensagem HTTP enviada com sucesso (status 201).');
         _messageController.clear();
+        // A mensagem deve vir via Socket.IO agora, então não adicionamos aqui diretamente.
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         ScaffoldMessenger.of(context).showSnackBar(
@@ -290,9 +332,11 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    // Certifique-se de que o socket só é manipulado se não for nulo
     _socket?.emit('leaveRoom', _internalConversationId);
     _socket?.disconnect();
     _socket?.dispose();
+    print('ChatScreen: Socket desconectado e dispose concluído.');
     super.dispose();
   }
 
@@ -326,7 +370,6 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             CircleAvatar(
               radius: 20,
-              // ignore: deprecated_member_use
               backgroundColor: theme.cardColor.withOpacity(0.5),
               backgroundImage: widget.recipientProfilePic != null &&
                       widget.recipientProfilePic!.isNotEmpty
