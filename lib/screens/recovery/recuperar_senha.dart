@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // Importe o pacote http
-import 'dart:convert'; // Para codificar/decodificar JSON
+import 'package:http/http.dart' as http; 
+import 'dart:convert'; 
 
 class RecuperarSenha extends StatefulWidget {
   const RecuperarSenha({super.key});
@@ -13,10 +13,9 @@ class _RecuperarSenhaState extends State<RecuperarSenha> {
   final TextEditingController _emailController = TextEditingController();
   final FocusNode _emailFocusNode = FocusNode();
   bool _isEmailFocused = false;
-  bool _isLoading = false; // Estado para controlar o carregamento do botão
+  bool _isLoading = false; 
 
-  // CORREÇÃO AQUI: A _baseUrl deve ser a base da API de usuários
-  static const String _baseUrl = 'http://localhost:8080/api/v1/users'; // Ajuste conforme seu ambiente!
+  static const String _baseUrl = 'http://localhost:8080/api/v1/users'; 
 
 
   @override
@@ -38,9 +37,8 @@ class _RecuperarSenhaState extends State<RecuperarSenha> {
     super.dispose();
   }
 
-  // Método para exibir mensagens usando SnackBar
   void _showSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return; // Garante que o widget ainda está montado
+    if (!mounted) return; 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -57,7 +55,6 @@ class _RecuperarSenhaState extends State<RecuperarSenha> {
     );
   }
 
-  // Método para enviar a solicitação de recuperação de senha ao backend
   Future<void> _requestPasswordReset() async {
     final email = _emailController.text.trim();
 
@@ -65,35 +62,31 @@ class _RecuperarSenhaState extends State<RecuperarSenha> {
       _showSnackBar("Por favor, digite seu email.", isError: true);
       return;
     }
-    // Adicionar validação de formato de email básica, se desejar
     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
       _showSnackBar("Por favor, digite um email válido.", isError: true);
       return;
     }
 
 
-    if (!mounted) return; // Verifica se o widget ainda está montado antes de atualizar o estado
+    if (!mounted) return; 
     setState(() {
-      _isLoading = true; // Ativa o estado de carregamento
+      _isLoading = true; 
     });
 
     try {
-      // CORREÇÃO AQUI: Concatene _baseUrl com o endpoint 'forgot-password'
       final response = await http.post(
-        Uri.parse('$_baseUrl/forgot-password'), // Endpoint para recuperar senha
+        Uri.parse('$_baseUrl/forgot-password'), 
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
 
       final responseData = jsonDecode(response.body);
 
-      if (!mounted) return; // Verifica novamente após a chamada assíncrona
+      if (!mounted) return; 
       if (response.statusCode == 200) {
         _showSnackBar(responseData['message'] ?? "Instruções enviadas para o seu email!");
-        // Opcional: Navegar de volta para a tela de login após sucesso
-        // Navigator.pop(context);
+        Navigator.pop(context);
       } else {
-        // Exibe a mensagem de erro do backend se houver
         _showSnackBar(responseData['message'] ?? 'Erro desconhecido ao enviar instruções.', isError: true);
       }
     } catch (e) {
@@ -102,7 +95,7 @@ class _RecuperarSenhaState extends State<RecuperarSenha> {
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false; // Desativa o estado de carregamento
+          _isLoading = false; 
         });
       }
     }
@@ -262,8 +255,8 @@ class _RecuperarSenhaState extends State<RecuperarSenha> {
                 Padding(
                   padding: const EdgeInsets.only(top: 10, bottom: 10),
                   child: _buildGradientButton(
-                    onPressed: _isLoading ? null : _requestPasswordReset, // Desabilita o botão durante o carregamento
-                    isLoading: _isLoading, // Passa o estado de carregamento para o construtor do botão
+                    onPressed: _isLoading ? null : _requestPasswordReset, 
+                    isLoading: _isLoading, 
                     child: const Text(
                       "Enviar instruções",
                       style: TextStyle(

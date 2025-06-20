@@ -64,8 +64,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (_internalConversationId != null) {
       setState(() => _isLoadingConversation = true);
-      await _fetchMessages(); // Busca as mensagens históricas
-      _connectToSocket(); // Conecta e configura o socket para tempo real
+      await _fetchMessages();
+      _connectToSocket(); 
       if (mounted) setState(() => _isLoadingConversation = false);
     } else if (widget.recipientId != null) {
       await _initiateOrGetConversation();
@@ -110,7 +110,6 @@ class _ChatScreenState extends State<ChatScreen> {
         print('ChatScreen: Emitindo "joinRoom" para sala: $_internalConversationId');
       });
 
-      // ADICIONADO MAIS LOGS AQUI
       _socket!.on('newMessage', (data) {
         print('ChatScreen: Evento "newMessage" recebido!');
         print('ChatScreen: Dados brutos da nova mensagem: ${jsonEncode(data)}'); // Log dos dados brutos
@@ -132,7 +131,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
             if (!messageExists) {
               _messages.add(data);
-              // Tenta parsear e ordenar, com tratamento de erro
               try {
                 _messages.sort((a, b) =>
                     DateTime.parse(a['createdAt'] ?? '').compareTo(DateTime.parse(b['createdAt'] ?? '')));
@@ -193,8 +191,8 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _internalConversationId = conversationData['_id'];
         });
-        await _fetchMessages(); // Busca as mensagens históricas
-        _connectToSocket(); // Conecta e configura o socket
+        await _fetchMessages(); 
+        _connectToSocket(); 
       } else {
         final errorData = jsonDecode(utf8.decode(response.bodyBytes));
         ScaffoldMessenger.of(context).showSnackBar(
@@ -236,7 +234,6 @@ class _ChatScreenState extends State<ChatScreen> {
         final List<dynamic> fetchedMessages = jsonDecode(responseBody);
         setState(() {
           _messages = fetchedMessages;
-          // Ordenar as mensagens históricas também
           _messages.sort((a, b) => DateTime.parse(a['createdAt']).compareTo(DateTime.parse(b['createdAt'])));
         });
         print('ChatScreen: Mensagens históricas carregadas: ${_messages.length}');
@@ -332,7 +329,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-    // Certifique-se de que o socket só é manipulado se não for nulo
     _socket?.emit('leaveRoom', _internalConversationId);
     _socket?.disconnect();
     _socket?.dispose();
